@@ -7,7 +7,15 @@ function getLogApiCredentials() {
   };
 }
 
+function setStatus(status) {
+  if (!status) {
+    status = "Idle";
+  }
+  $("#current-status").html(status);
+}
+
 async function fetchLog(hostname, logStream, txId, creds) {
+  setStatus("Fetching logs");
   let pagedResultsCookie = null;
   let logEntries = [];
   while (true) {
@@ -39,6 +47,7 @@ async function fetchLog(hostname, logStream, txId, creds) {
       break;
     }
   }
+  setStatus();
   return logEntries;
 }
 
@@ -99,8 +108,12 @@ function addJourney(hostname, txId) {
 
   journeyDiv = document.createElement("div");
   journeyDiv.id = txId;
-  journeyDiv.className = "journey";
-  journeyDiv.textContent = `Transaction ${txId}`;
+
+  let journeyTitleDiv = document.createElement("div");
+  journeyTitleDiv.className = "journey-title";
+  journeyTitleDiv.innerHTML = `Transaction ${txId}`;
+  journeyDiv.appendChild(journeyTitleDiv);
+
   journeyDiv.addEventListener("click", function (event) {
     refreshLog(hostname, txId);
   });

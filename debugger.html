@@ -27,6 +27,10 @@
       color: green;
       margin-bottom: 10px;
     }
+    .journey-title {
+      background-color: whitesmoke;
+      padding: 5px;
+    }
     .json-container {
       font-family: monospace;
       font-size: 8pt;
@@ -53,9 +57,15 @@
       top: 32px;
       left: 0px;
     }
+    .status-bar {
+      display: inline-block;
+    }
   </style>
   <body>
-    <div class="debugger-header">header</div>
+    <div class="debugger-header">
+      <img src="images/clear-12.png" /> | Status:
+      <div id="current-status" class="status-bar">Idle</div>
+    </div>
     <div class="debugger-output" id="journeyRequests"></div>
     <script src="common/config.js"></script>
     <script src="debugger.js"></script>
