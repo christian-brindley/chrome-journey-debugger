@@ -14,10 +14,6 @@ function saveConfig(config) {
   localStorage.setItem("config", JSON.stringify(config));
 }
 
-function defaultCards() {
-  return ["target-hosts", "log-settings"];
-}
-
 // Target host functions
 
 function addTargetHost(targetHost) {
@@ -25,7 +21,6 @@ function addTargetHost(targetHost) {
 }
 
 function getTargetHostById(id) {
-  console.log("loading host", id, "from", JSON.stringify(getTargetHosts()));
   return getTargetHosts()[id];
 }
 
@@ -49,6 +44,17 @@ function deleteTargetHost(id) {
   let targetHosts = getTargetHosts();
   delete targetHosts[id];
   saveTargetHosts(targetHosts);
+}
+
+function getTargetHostByHostname(hostname) {
+  const targetHosts = getTargetHosts();
+  const id = Object.keys(targetHosts).find(
+    (key) => targetHosts[key].hostname === hostname
+  );
+  if (id) {
+    return targetHosts[id];
+  }
+  return null;
 }
 
 // document
@@ -114,6 +120,11 @@ $(document).ready(function () {
       var logKey = $("#new-target-log-key").val();
       var logSecret = $("#new-target-log-secret").val();
 
+      if (getTargetHostByHostname(hostname)) {
+        $("#add-target-host-error").html("This hostname already exists.");
+        return;
+      }
+
       addTargetHost({
         hostname: hostname,
         logKey: logKey,
@@ -125,6 +136,7 @@ $(document).ready(function () {
     $("#new-target-hostname").val("");
     $("#new-target-log-key").val("");
     $("#new-target-log-secret").val("");
+    $("#add-target-host-error").html("");
     switchView(VIEWS.DEFAULT);
   });
 
@@ -138,6 +150,14 @@ $(document).ready(function () {
       var logKey = $("#edit-target-log-key").val();
       var logSecret = $("#edit-target-log-secret").val();
 
+      const previousHostname = getTargetHostById(id).hostname;
+      if (hostname != previousHostname && getTargetHostByHostname(hostname)) {
+        if (getTargetHostByHostname(hostname)) {
+          $("#edit-target-host-error").html("Another entry has this hostname.");
+          return;
+        }
+      }
+
       saveTargetHost(id, {
         hostname: hostname,
         logKey: logKey,
@@ -150,6 +170,7 @@ $(document).ready(function () {
     $("#edit-target-hostname").val("");
     $("#edit-target-log-key").val("");
     $("#edit-target-log-secret").val("");
+    $("#edit-target-host-error").html("");
     switchView(VIEWS.DEFAULT);
   });
 
@@ -291,33 +312,6 @@ function loadTargetHosts() {
 }
 
 function switchView(view) {
-  var cards;
-  switch (view) {
-    case VIEWS.ADD_TARGET_HOST:
-      cards = ["add-target-host"];
-      break;
-    case VIEWS.EDIT_TARGET_HOST:
-      cards = ["edit-target-host"];
-      break;
-    case VIEWS.DELETE_TARGET_HOST:
-      cards = ["delete-target-host"];
-      break;
-    default:
-      cards = ["target-hosts", "log-settings"];
-  }
-  showCards(cards);
-}
-
-function showCards(cardIdsToShow) {
-  document.querySelectorAll(".card").forEach((card) => {
-    card.classList.add("d-none");
-  });
-
-  // Show the selected cards
-  cardIdsToShow.forEach((cardId) => {
-    const card = document.getElementById(cardId);
-    if (card) {
-      card.classList.remove("d-none");
-    }
-  });
+  $(".view-section").hide();
+  $(`#view-section-${view}`).fadeIn("fast");
 }

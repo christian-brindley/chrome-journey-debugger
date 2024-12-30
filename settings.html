@@ -52,139 +52,157 @@
         padding: 10px 20px 10px 20px;
         font-size: 12pt;
       }
+      .field-error {
+        color: red;
+        font-size: 8pt;
+      }
     </style>
   </head>
   <div class="container p-0">
-    <div class="card" id="target-hosts">
-      <div class="card-header">
-        <div class="card-actions float-right">
-          <div class="dropdown show">
-            <a href="#" data-toggle="dropdown" data-display="static">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="feather feather-more-horizontal align-middle"
-              >
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="19" cy="12" r="1"></circle>
-                <circle cx="5" cy="12" r="1"></circle>
-              </svg>
-            </a>
-
-            <div class="dropdown-menu dropdown-menu-right">
-              <a class="dropdown-item" data-action="add-target-host" href="#">
-                Add a host
+    <div id="view-section-default" class="view-section">
+      <div class="card" id="target-hosts">
+        <div class="card-header">
+          <div class="card-actions float-right">
+            <div class="dropdown show">
+              <a href="#" data-toggle="dropdown" data-display="static">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="feather feather-more-horizontal align-middle"
+                >
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="19" cy="12" r="1"></circle>
+                  <circle cx="5" cy="12" r="1"></circle>
+                </svg>
               </a>
+
+              <div class="dropdown-menu dropdown-menu-right">
+                <a class="dropdown-item" data-action="add-target-host" href="#">
+                  Add a host
+                </a>
+              </div>
             </div>
           </div>
+          <h5 class="card-title mb-0">Target hosts</h5>
         </div>
-        <h5 class="card-title mb-0">Target hosts</h5>
+        <div id="target-host-list"></div>
       </div>
-      <div id="target-host-list"></div>
-    </div>
-    <div class="card" id="log-settings">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Logs</h5>
-      </div>
-      <div class="card-body">
-        <form>
-          <div class="form-row">
-            <div class="form-group col-md-6">
-              <input
-                type="checkbox"
-                name="logs-fetch-automatically"
-                id="logs-fetch-automatically"
-              />
-              <label for="logs-fetch-automatically"
-                >Fetch logs automatically</label
-              >
+      <div class="card" id="log-settings">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Logs</h5>
+        </div>
+        <div class="card-body">
+          <form>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <input
+                  type="checkbox"
+                  name="logs-fetch-automatically"
+                  id="logs-fetch-automatically"
+                />
+                <label for="logs-fetch-automatically"
+                  >Fetch logs automatically</label
+                >
+              </div>
             </div>
-          </div>
-          <button type="submit" class="btn btn-primary">Save changes</button>
-        </form>
+            <button type="submit" class="btn btn-primary">Save changes</button>
+          </form>
+        </div>
       </div>
     </div>
-    <div class="card" id="add-target-host">
-      <div class="card-body">
-        <h5 class="card-title">Add a new target host</h5>
-        <form id="add-target-host-form">
-          <div class="form-group">
-            <label for="new-target-hostname">Hostname</label>
-            <input class="form-control" id="new-target-hostname" />
-          </div>
-          <div class="form-group">
-            <label for="new-target-log-key">Log API key</label>
-            <input class="form-control" id="new-target-log-key" />
-          </div>
-          <div class="form-group">
-            <label for="new-target-log-secret">Log API secret</label>
-            <input class="form-control" id="new-target-log-secret" />
-          </div>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            id="add-target-host-button-add"
-            value="add"
-          >
-            Add</button
-          >&nbsp;<button
-            type="submit"
-            class="btn btn-primary"
-            id="add-target-host-button-cancel"
-            value="cancel"
-          >
-            Cancel
-          </button>
-        </form>
+    <div id="view-section-add-target-host" class="view-section">
+      <div class="card" id="add-target-host">
+        <div class="card-body">
+          <h5 class="card-title">Add a new target host</h5>
+          <form id="add-target-host-form">
+            <div class="form-group">
+              <label for="new-target-hostname">Hostname</label>
+              <input class="form-control" id="new-target-hostname" />
+              <div class="field-error" id="add-target-host-error"></div>
+            </div>
+            <div class="form-group">
+              <label for="new-target-log-key">Log API key</label>
+              <input class="form-control" id="new-target-log-key" />
+            </div>
+            <div class="form-group">
+              <label for="new-target-log-secret">Log API secret</label>
+              <input class="form-control" id="new-target-log-secret" />
+            </div>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              id="add-target-host-button-add"
+              value="add"
+            >
+              Add</button
+            >&nbsp;<button
+              type="submit"
+              class="btn btn-primary"
+              id="add-target-host-button-cancel"
+              value="cancel"
+            >
+              Cancel
+            </button>
+          </form>
+        </div>
       </div>
     </div>
-    <div class="card" id="edit-target-host">
-      <div class="card-body">
-        <h5 class="card-title">Edit target host</h5>
-        <form id="edit-target-host-form">
-          <input type="hidden" id="edit-target-id" />
-          <div class="form-group">
-            <label for="edit-target-hostname">Hostname</label>
-            <input class="form-control" id="edit-target-hostname" />
-          </div>
-          <div class="form-group">
-            <label for="edit-target-log-key">Log API key</label>
-            <input class="form-control" id="edit-target-log-key" />
-          </div>
-          <div class="form-group">
-            <label for="edit-target-log-secret">Log API secret</label>
-            <input class="form-control" id="edit-target-log-secret" />
-          </div>
-          <button value="save" type="submit" class="btn btn-primary">
-            Save</button
-          >&nbsp;<button value="cancel" type="submit" class="btn btn-primary">
-            Cancel
-          </button>
-        </form>
+    <div id="view-section-edit-target-host" class="view-section">
+      <div class="card" id="edit-target-host">
+        <div class="card-body">
+          <h5 class="card-title">Edit target host</h5>
+          <form id="edit-target-host-form">
+            <input type="hidden" id="edit-target-id" />
+            <div class="form-group">
+              <label for="edit-target-hostname">Hostname</label>
+              <input class="form-control" id="edit-target-hostname" />
+              <div class="field-error" id="edit-target-host-error"></div>
+            </div>
+            <div class="form-group">
+              <label for="edit-target-log-key">Log API key</label>
+              <input class="form-control" id="edit-target-log-key" />
+            </div>
+            <div class="form-group">
+              <label for="edit-target-log-secret">Log API secret</label>
+              <input class="form-control" id="edit-target-log-secret" />
+            </div>
+            <button value="save" type="submit" class="btn btn-primary">
+              Save</button
+            >&nbsp;<button value="cancel" type="submit" class="btn btn-primary">
+              Cancel
+            </button>
+          </form>
+        </div>
       </div>
     </div>
-    <div class="card" id="delete-target-host">
-      <div class="card-body">
-        <h5 class="card-title">Delete target host</h5>
-        <form id="delete-target-host-form">
-          <input type="hidden" id="delete-target-id" />
-          <div class="form-group">
-            <label for="delete-target-hostname">Hostname</label>
-            <input readonly class="form-control" id="delete-target-hostname" />
-          </div>
-          <button value="delete" type="submit" class="btn btn-primary">
-            Delete</button
-          >&nbsp;<button value="cancel" type="submit" class="btn btn-primary">
-            Cancel
-          </button>
-        </form>
+    <div id="view-section-delete-target-host" class="view-section">
+      <div class="card" id="delete-target-host">
+        <div class="card-body">
+          <h5 class="card-title">Delete target host</h5>
+          <form id="delete-target-host-form">
+            <input type="hidden" id="delete-target-id" />
+            <div class="form-group">
+              <label for="delete-target-hostname">Hostname</label>
+              <input
+                readonly
+                class="form-control"
+                id="delete-target-hostname"
+              />
+            </div>
+            <button value="delete" type="submit" class="btn btn-primary">
+              Delete</button
+            >&nbsp;<button value="cancel" type="submit" class="btn btn-primary">
+              Cancel
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
