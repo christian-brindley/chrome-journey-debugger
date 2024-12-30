@@ -99,7 +99,8 @@ function addJourney(hostname, txId) {
 
   journeyDiv = document.createElement("div");
   journeyDiv.id = txId;
-  journeyDiv.textContent = `Journey ${txId}`;
+  journeyDiv.className = "journey";
+  journeyDiv.textContent = `Transaction ${txId}`;
   journeyDiv.addEventListener("click", function (event) {
     refreshLog(hostname, txId);
   });

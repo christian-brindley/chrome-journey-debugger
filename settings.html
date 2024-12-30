@@ -8,6 +8,7 @@
     <script src="lib/jquery-3.2.1.min.js"></script>
     <script src="lib/popper-1.12.9.min.js"></script>
     <script src="lib/bootstrap-4.3.1.min.js"></script>
+    <script src="common/config.js"></script>
     <style>
       body {
         margin-top: 20px;
@@ -99,20 +100,44 @@
           <h5 class="card-title mb-0">Logs</h5>
         </div>
         <div class="card-body">
-          <form>
+          <form id="form-save-log-settings">
+            <div class="form-row">
+              <label>General</label>
+            </div>
             <div class="form-row">
               <div class="form-group col-md-6">
-                <input
-                  type="checkbox"
-                  name="logs-fetch-automatically"
-                  id="logs-fetch-automatically"
-                />
+                <input type="checkbox" id="logs-fetch-automatically" />
                 <label for="logs-fetch-automatically"
                   >Fetch logs automatically</label
                 >
               </div>
             </div>
-            <button type="submit" class="btn btn-primary">Save changes</button>
+            <div class="form-row"><label>Streams</label></div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <div>
+                  <input type="checkbox" id="logs-streams-am-core" />
+                  <label for="logs-streams-am-core">am-core</label>
+                </div>
+                <div>
+                  <input type="checkbox" id="logs-streams-am-access" />
+                  <label for="logs-streams-am-access">am-access</label>
+                </div>
+                <div>
+                  <input type="checkbox" id="logs-streams-am-authentication" />
+                  <label for="logs-streams-am-authentication"
+                    >am-authentication</label
+                  >
+                </div>
+                <div>
+                  <input type="checkbox" id="logs-streams-idm-core" />
+                  <label for="logs-streams-idm-core">idm-core</label>
+                </div>
+              </div>
+            </div>
+            <button value="save" type="submit" class="btn btn-primary">
+              Save changes
+            </button>
           </form>
         </div>
       </div>

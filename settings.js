@@ -5,75 +5,16 @@ const VIEWS = {
   DELETE_TARGET_HOST: "delete-target-host",
 };
 
-function getConfig() {
-  let config = localStorage.getItem("config") || "{}";
-  return JSON.parse(config);
-}
-
-function saveConfig(config) {
-  localStorage.setItem("config", JSON.stringify(config));
-}
-
-// Target host functions
-
-function addTargetHost(targetHost) {
-  saveTargetHost(crypto.randomUUID(), targetHost);
-}
-
-function getTargetHostById(id) {
-  return getTargetHosts()[id];
-}
-
-function getTargetHosts() {
-  return getConfig().targetHosts || {};
-}
-
-function saveTargetHosts(targetHosts) {
-  let config = getConfig();
-  config.targetHosts = targetHosts;
-  saveConfig(config);
-}
-
-function saveTargetHost(id, targetHost) {
-  let targetHosts = getTargetHosts();
-  targetHosts[id] = targetHost;
-  saveTargetHosts(targetHosts);
-}
-
-function deleteTargetHost(id) {
-  let targetHosts = getTargetHosts();
-  delete targetHosts[id];
-  saveTargetHosts(targetHosts);
-}
-
-function getTargetHostByHostname(hostname) {
-  const targetHosts = getTargetHosts();
-  const id = Object.keys(targetHosts).find(
-    (key) => targetHosts[key].hostname === hostname
-  );
-  if (id) {
-    return targetHosts[id];
-  }
-  return null;
-}
-
-// document
-//   .getElementById("action-add-target-host")
-//   .addEventListener("click", switchView("addTargetHost"));
+const LOG_STREAMS = ["am-core", "am-authentication", "am-access", "idm-core"];
 
 function attachListeners() {
   $(".dropdown-menu .dropdown-item").on("click", function (e) {
-    e.preventDefault(); // Prevent the default anchor click behavior
+    e.preventDefault();
 
-    // Get the clicked item's text
     var selectedText = $(this).text();
 
-    // Optional: Retrieve a custom data attribute if needed
     var action = $(this).data("action");
 
-    //console.log("got action", action);
-
-    // You can add custom behavior here
     if (action === "add-target-host") {
       switchView(VIEWS.ADD_TARGET_HOST);
       return;
@@ -110,6 +51,8 @@ function attachListeners() {
 $(document).ready(function () {
   loadTargetHosts();
   attachListeners();
+
+  loadLogConfig();
 
   $("#add-target-host-form").submit(function (event) {
     event.preventDefault();
@@ -188,6 +131,21 @@ $(document).ready(function () {
     $("#delete-target-id").val("");
     $("#delete-target-hostname").val("");
     switchView(VIEWS.DEFAULT);
+  });
+
+  $("#form-save-log-settings").submit(function (event) {
+    event.preventDefault();
+
+    let streams = {};
+    LOG_STREAMS.forEach((stream) => {
+      streams[stream] = $(`#logs-streams-${stream}`).is(":checked");
+    });
+    const logConfig = {
+      automatic: $("#logs-fetch-automatically").is(":checked"),
+      streams: streams,
+    };
+    console.log("log config now", JSON.stringify(logConfig));
+    saveLogConfig(logConfig);
   });
 
   switchView(VIEWS.DEFAULT);
@@ -308,6 +266,14 @@ function loadTargetHosts() {
     hostsDiv.appendChild(
       createTargetHostDiv(targetHostId, targetHosts[targetHostId])
     );
+  });
+}
+
+function loadLogConfig() {
+  const logConfig = getLogConfig();
+  $("#logs-fetch-automatically").prop("checked", logConfig.automatic);
+  LOG_STREAMS.forEach((stream) => {
+    $(`#logs-streams-${stream}`).prop("checked", logConfig.streams[stream]);
   });
 }
 
