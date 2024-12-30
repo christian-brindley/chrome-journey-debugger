@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Journey Debugger",
+  "version": "1.0",
+  "description": "Shows debug information about a journey",
+  "permissions": [
+    "debugger",
+    "webRequest",
+    "activeTab",
+    "sidePanel",
+    "contextMenus"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "devtools_page": "devtools.html",
+  "icons": {
+    "16": "images/bug-16.png",
+    "48": "images/bug-48.png",
+    "128": "images/bug-128.png"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "side_panel": {
+    "default_path": "settings.html"
+  }
+}

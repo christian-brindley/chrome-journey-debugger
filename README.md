@@ -1,2 +1,3 @@
 # chrome-journey-debugger
-Debugger for ForgeRock journeys
+
+Debugger for journeys
