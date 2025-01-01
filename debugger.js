@@ -110,11 +110,12 @@ function addJourneySession(targetHost, txId) {
   const parentDiv = document.getElementById("journeyRequests");
 
   journeyDiv = document.createElement("div");
+  journeyDiv.className = "journey-container";
   journeyDiv.id = txId;
 
   let journeyTitleDiv = document.createElement("div");
   journeyTitleDiv.className = "journey-title";
-  journeyTitleDiv.innerHTML = `Host [${targetHost.hostname}] Transaction [${txId}]}`;
+  journeyTitleDiv.innerHTML = `Start - ${targetHost.hostname}/${txId}`;
   journeyDiv.appendChild(journeyTitleDiv);
 
   if (parentDiv) {
@@ -158,6 +159,28 @@ function syntaxHighlight(json) {
   );
 }
 
+function addCollapsedContainer(parentContainer, container, title) {
+  let expanderSpan = document.createElement("span");
+  expanderSpan.className = "expander-arrow";
+  expanderSpan.innerHTML = "&#9654;";
+
+  let titleDiv = document.createElement("div");
+  titleDiv.className = "stage-title";
+  titleDiv.appendChild(expanderSpan);
+  let titleText = document.createTextNode(title);
+  titleText.className = "stage-title-text";
+  titleDiv.appendChild(titleText);
+  titleDiv.addEventListener("click", () => {
+    const isHidden = container.style.display === "none";
+    container.style.display = isHidden ? "block" : "none";
+    expanderSpan.style.transform = isHidden ? "rotate(90deg)" : "rotate(0deg)";
+  });
+
+  container.style.display = "none";
+  parentContainer.appendChild(titleDiv);
+  parentContainer.appendChild(container);
+}
+
 function addStage(targetHost, details) {
   // Request payload
   const jsonPayload = details.request.postData;
@@ -175,69 +198,31 @@ function addStage(targetHost, details) {
 
   stageDiv.className = "journey-stage";
 
-  // stageExpanderSpanId = `${stageDiv.id}-expander`;
-  //stageContentDivId = `${stageDiv.id}-content`;
-
-  let stageExpanderSpan = document.createElement("span");
-  stageExpanderSpan.className = "expander-arrow";
-  stageExpanderSpan.innerHTML = "&#9654;";
-  //stageExpanderSpan.id = stageExpanderSpanId;
-
-  let titleDiv = document.createElement("div");
-  titleDiv.className = "stage-title";
-  titleDiv.appendChild(stageExpanderSpan);
-  let titleText = document.createTextNode(`Stage [${txId.request}]`);
-  titleText.className = "stage-title-text";
-  titleDiv.appendChild(titleText);
-
-  stageDiv.appendChild(titleDiv);
-
-  let stageContentDiv = document.createElement("div");
+  const stageContentDiv = document.createElement("div");
   stageContentDiv.className = "stage-content";
-  stageContentDiv.style.display = "none";
-  //stageContentDiv.id = stageContentDivId;
-  stageDiv.appendChild(stageContentDiv);
 
-  titleDiv.addEventListener("click", () => {
-    //console.log("toggling", stageExpanderSpanId);
-    const isHidden = stageContentDiv.style.display === "none";
-    stageContentDiv.style.display = isHidden ? "block" : "none";
-    stageExpanderSpan.style.transform = isHidden
-      ? "rotate(90deg)"
-      : "rotate(0deg)";
-
-    // stageExpanderSpan.innerHTML = isHidden ? "&#9660;" : "&#9654;";
-    // if (stageDiv.firstChild.style.display === "none") {
-    //   stageDiv.firstChild.style.display = "block";
-    //   stageExpanderSpan.textContent = "&#9660;";
-    // } else {
-    //   stageDiv.firstChild.style.display = "none";
-    //   stageExpanderSpan.textContent = "&#9654;"; // Change arrow to right
-    // }
-
-    // if (isHidden) {
-    //   stageContentDiv.style.display = "block";
-    //   stageExpanderSpan.innerHTML = "&#9660;";
-    // } else {
-    //   stageContentDiv.style.display = "hidden";
-    //   stageExpanderSpan.innerHTML = "&#9654;";
-    // }
-  });
+  addCollapsedContainer(stageDiv, stageContentDiv, `Stage [${txId.request}]`);
 
   let requestDiv = document.createElement("div");
-  stageContentDiv.appendChild(requestDiv);
+  let requestDetailsDiv = document.createElement("div");
 
-  let requestTitleDiv = document.createElement("div");
-  requestTitleDiv.className = "http-request-title";
-  requestTitleDiv.innerHTML = "Request details";
-  requestDiv.appendChild(requestTitleDiv);
+  // stageContentDiv.appendChild(requestDiv);
 
-  requestDiv.appendChild(createHeadersDiv(details.request.headers));
+  // let requestTitleDiv = document.createElement("div");
+  // requestTitleDiv.className = "http-request-title";
+  // requestTitleDiv.innerHTML = "Request details";
+  // requestDiv.appendChild(requestTitleDiv);
+
+  requestDetailsDiv.appendChild(createHeadersDiv(details.request.headers));
 
   const requestBodyDiv = document.createElement("div");
   requestBodyDiv.className = "json-container";
   requestBodyDiv.textContent = JSON.stringify(requestPayload, null, 2);
-  requestDiv.appendChild(requestBodyDiv);
+  requestDetailsDiv.appendChild(requestBodyDiv);
+
+  addCollapsedContainer(requestDiv, requestDetailsDiv, "Request details");
+
+  stageContentDiv.appendChild(requestDiv);
 
   let responseDiv = document.createElement("div");
   stageContentDiv.appendChild(responseDiv);
