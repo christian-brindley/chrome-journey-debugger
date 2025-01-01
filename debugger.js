@@ -1,21 +1,14 @@
 const FETCH_INTERVAL_MS = 10000;
 
-function getLogApiCredentials() {
-  return {
-    key: "bcd14565b7413adaccff8f2b652194e9",
-    secret: "5318748c85d90b9785a7fe03f3178b96b703e84d9a3a323a874e0058458bb18b",
-  };
-}
-
-function setStatus(status) {
+function setLogStatus(status) {
   if (!status) {
     status = "Idle";
   }
-  $("#current-status").html(status);
+  $("#log-status").html(status);
 }
 
-async function fetchLog(hostname, logStream, txId, creds) {
-  setStatus("Fetching logs");
+async function fetchLog(hostname, logStream, txId, logApiCredentials) {
+  setLogStatus("Fetching");
   let pagedResultsCookie = null;
   let logEntries = [];
   while (true) {
@@ -27,8 +20,8 @@ async function fetchLog(hostname, logStream, txId, creds) {
     }
     const response = await fetch(url, {
       headers: {
-        "x-api-key": creds.key,
-        "x-api-secret": creds.secret,
+        "x-api-key": logApiCredentials.key,
+        "x-api-secret": logApiCredentials.secret,
       },
     });
 
@@ -47,16 +40,26 @@ async function fetchLog(hostname, logStream, txId, creds) {
       break;
     }
   }
-  setStatus();
+  setLogStatus(logEntries.length);
   return logEntries;
 }
 
-async function refreshLog(hostname, txId) {
+async function refreshAllLogs() {
+  journeySessions.forEach((journeySession) => {
+    const targetHost = journeySession.targetHost;
+    refreshLog(targetHost.hostname, journeySession.txId, {
+      key: targetHost.logKey,
+      secret: targetHost.logSecret,
+    });
+  });
+}
+
+async function refreshLog(hostname, txId, logApiCredentials) {
   const logEntries = await fetchLog(
     hostname,
     "am-core",
     txId,
-    getLogApiCredentials()
+    logApiCredentials
   );
 
   let sortedEntries = {};
@@ -69,17 +72,12 @@ async function refreshLog(hostname, txId) {
     sortedEntries[entryTxId].push(logEntry);
   });
 
-  console.log(JSON.stringify(sortedEntries));
-
   Object.keys(sortedEntries).forEach((entryTxId) => {
     let logDiv = document.getElementById(`log-${entryTxId}`);
     if (logDiv) {
       logDiv.innerHTML = JSON.stringify(sortedEntries[entryTxId], null, 2);
     }
   });
-
-  //   entriesDivId = document.getElementById(entriesDivId);
-  //   entriesDivId.innerHTML = JSON.stringify(logEntries, null, 2);
 }
 
 function getTxId(request) {
@@ -99,11 +97,16 @@ function getTxId(request) {
   };
 }
 
-function addJourney(hostname, txId) {
+let journeySessions = [];
+
+function addJourneySession(targetHost, txId) {
   var journeyDiv = document.getElementById(txId);
   if (journeyDiv) {
     return journeyDiv;
   }
+
+  journeySessions.push({ targetHost: targetHost, txId: txId });
+
   const parentDiv = document.getElementById("journeyRequests");
 
   journeyDiv = document.createElement("div");
@@ -111,12 +114,8 @@ function addJourney(hostname, txId) {
 
   let journeyTitleDiv = document.createElement("div");
   journeyTitleDiv.className = "journey-title";
-  journeyTitleDiv.innerHTML = `Transaction ${txId}`;
+  journeyTitleDiv.innerHTML = `Host [${targetHost.hostname}] Transaction [${txId}]}`;
   journeyDiv.appendChild(journeyTitleDiv);
-
-  journeyDiv.addEventListener("click", function (event) {
-    refreshLog(hostname, txId);
-  });
 
   if (parentDiv) {
     parentDiv.appendChild(journeyDiv);
@@ -159,204 +158,133 @@ function syntaxHighlight(json) {
   );
 }
 
-function addJourneyStep(details) {
-  console.log("details", JSON.stringify(details));
-
+function addStage(targetHost, details) {
   // Request payload
   const jsonPayload = details.request.postData;
   const requestPayload = jsonPayload ? JSON.parse(jsonPayload.text) : null;
-
   // txId
 
   const txId = getTxId(details.request);
 
   // Add to debug pane
 
-  const hostname = new URL(details.request.url).hostname;
-  const journeyDiv = addJourney(hostname, txId.base);
+  const journeyDiv = addJourneySession(targetHost, txId.base);
 
-  const stepDiv = document.createElement("div");
-  stepDiv.id = txId.full;
-  stepDiv.textContent = `Step ${txId.request}`;
+  const stageDiv = document.createElement("div");
+  stageDiv.id = txId.full;
 
-  //   const requestHeadersDiv = document.createElement("div");
+  stageDiv.className = "journey-stage";
 
-  //   const prettyJSON = syntaxHighlight(
-  //     JSON.stringify(details.request.headers, null, 2)
-  //   );
-  //   const jsonContainer = document.createElement("div");
-  //   jsonContainer.className = "json-container";
-  //   jsonContainer.innerHTML = prettyJSON;
+  // stageExpanderSpanId = `${stageDiv.id}-expander`;
+  //stageContentDivId = `${stageDiv.id}-content`;
 
-  //   requestHeadersDiv.innerHTML = syntaxHighlight(
-  //     JSON.stringify(details.request.headers),
-  //     null,
-  //     2
-  //   );
-  //   requestHeadersDiv.className = "json-container";
-  //   stepDiv.append(requestHeadersDiv);
+  let stageExpanderSpan = document.createElement("span");
+  stageExpanderSpan.className = "expander-arrow";
+  stageExpanderSpan.innerHTML = "&#9654;";
+  //stageExpanderSpan.id = stageExpanderSpanId;
 
-  stepDiv.append(harHeadersToTable(details.request.headers));
+  let titleDiv = document.createElement("div");
+  titleDiv.className = "stage-title";
+  titleDiv.appendChild(stageExpanderSpan);
+  let titleText = document.createTextNode(`Stage [${txId.request}]`);
+  titleText.className = "stage-title-text";
+  titleDiv.appendChild(titleText);
+
+  stageDiv.appendChild(titleDiv);
+
+  let stageContentDiv = document.createElement("div");
+  stageContentDiv.className = "stage-content";
+  stageContentDiv.style.display = "none";
+  //stageContentDiv.id = stageContentDivId;
+  stageDiv.appendChild(stageContentDiv);
+
+  titleDiv.addEventListener("click", () => {
+    //console.log("toggling", stageExpanderSpanId);
+    const isHidden = stageContentDiv.style.display === "none";
+    stageContentDiv.style.display = isHidden ? "block" : "none";
+    stageExpanderSpan.style.transform = isHidden
+      ? "rotate(90deg)"
+      : "rotate(0deg)";
+
+    // stageExpanderSpan.innerHTML = isHidden ? "&#9660;" : "&#9654;";
+    // if (stageDiv.firstChild.style.display === "none") {
+    //   stageDiv.firstChild.style.display = "block";
+    //   stageExpanderSpan.textContent = "&#9660;";
+    // } else {
+    //   stageDiv.firstChild.style.display = "none";
+    //   stageExpanderSpan.textContent = "&#9654;"; // Change arrow to right
+    // }
+
+    // if (isHidden) {
+    //   stageContentDiv.style.display = "block";
+    //   stageExpanderSpan.innerHTML = "&#9660;";
+    // } else {
+    //   stageContentDiv.style.display = "hidden";
+    //   stageExpanderSpan.innerHTML = "&#9654;";
+    // }
+  });
+
+  let requestDiv = document.createElement("div");
+  stageContentDiv.appendChild(requestDiv);
+
+  let requestTitleDiv = document.createElement("div");
+  requestTitleDiv.className = "http-request-title";
+  requestTitleDiv.innerHTML = "Request details";
+  requestDiv.appendChild(requestTitleDiv);
+
+  requestDiv.appendChild(createHeadersDiv(details.request.headers));
 
   const requestBodyDiv = document.createElement("div");
   requestBodyDiv.className = "json-container";
-  requestBodyDiv.innerHTML = JSON.stringify(requestPayload, null, 2);
+  requestBodyDiv.textContent = JSON.stringify(requestPayload, null, 2);
+  requestDiv.appendChild(requestBodyDiv);
 
-  stepDiv.append(requestBodyDiv);
+  let responseDiv = document.createElement("div");
+  stageContentDiv.appendChild(responseDiv);
 
-  //   const responseHeadersDiv = document.createElement("div");
-  //   responseHeadersDiv.textContent = formatHeaders(details.response.headers);
-  //   stepDiv.append(responseHeadersDiv);
+  let responseTitleDiv = document.createElement("div");
+  responseTitleDiv.className = "http-request-title";
+  responseTitleDiv.innerHTML = "Response details";
+  responseDiv.appendChild(responseTitleDiv);
 
-  details.getContent((content) => {
-    const responseBodyDiv = document.createElement("div");
+  responseDiv.appendChild(createHeadersDiv(details.response.headers));
 
-    responseBodyDiv.className = "json-container";
-    responseBodyDiv.innerHTML = JSON.stringify(JSON.parse(content), null, 2);
-    stepDiv.append(responseBodyDiv);
-  });
+  const responseBodyDivId = `response-body-${txId.full}`;
+  const responseBodyDiv = document.createElement("div");
+  responseBodyDiv.className = "json-container";
+  responseBodyDiv.id = responseBodyDivId;
+  responseDiv.appendChild(responseBodyDiv);
 
-  const logEntriesDivId = `log-${txId.full}`;
-  console.log("====Creating log div", logEntriesDivId);
-  const logDiv = document.createElement("div");
-  //   logDiv.addEventListener("click", function (event) {
-  //     event.preventDefault();
-  //     refreshLog(hostname, logEntriesDivId, txId.full);
-  //   });
-  //   logDiv.innerHTML = `Logs Refresh`;
-  stepDiv.append(logDiv);
+  let logsDiv = document.createElement("div");
+  stageContentDiv.appendChild(logsDiv);
+
+  let logTitleDiv = document.createElement("div");
+  logTitleDiv.className = "logs-title";
+  logTitleDiv.innerHTML = `Logs`;
+  logsDiv.appendChild(logTitleDiv);
 
   const logEntriesDiv = document.createElement("div");
-  logEntriesDiv.id = logEntriesDivId;
+  logEntriesDiv.id = `log-${txId.full}`;
   logEntriesDiv.className = "json-container";
-  stepDiv.append(logEntriesDiv);
+  logsDiv.appendChild(logEntriesDiv);
 
-  journeyDiv.appendChild(stepDiv);
+  journeyDiv.appendChild(stageDiv);
+
+  details.getContent((content) => {
+    $(`#${responseBodyDivId}`).text(
+      JSON.stringify(JSON.parse(content), null, 2)
+    );
+  });
 }
-
-// function addJourneyStepRequest(requestId, payload) {
-//   // const stepDiv = document.getElementById(requestId);
-//   const payloadDiv = document.createElement("div");
-//   payloadDiv.textContent = `Request<br/>${JSON.stringify(payload, null, 2)}`;
-//   payloadDiv.id = requestId;
-//   requestPayloads[requestId] = payloadDiv;
-//   // stepDiv.appendChild(payloadDiv);
-// }
-
-// var requests = [];
-// var logs = [];
-
-// chrome.webRequest.onBeforeRequest.addListener(
-//   (details) => {
-//     console.log("Request Id", details.requestId);
-//     if (details.method === "POST" && details.requestBody) {
-//       console.log("POST Request to:", details.url);
-
-//       const rawBody = new TextDecoder("utf-8").decode(
-//         details.requestBody.raw[0].bytes
-//       );
-//       const jsonData = JSON.parse(rawBody);
-//       console.log("Intercepted JSON Payload");
-//       console.log(JSON.stringify(jsonData, null, 2));
-//       addJourneyStepRequest(details.requestId, jsonData);
-//     }
-//   },
-//   {
-//     urls: ["https://*.forgeblocks.com/*/authenticate?*"],
-//   },
-//   ["requestBody"]
-// );
-
-// chrome.webRequest.onCompleted.addListener(
-//   (details) => {
-//     //if (details.responseHeaders) {
-//     console.log("Request completed: ", details);
-//   },
-//   //},
-//   { urls: ["https://*.forgeblocks.com/*/authenticate?*"] }
-// );
-
-// const journeyDiv = chrome.webRequest.onBeforeSendHeaders.addListener(
-//   (details) => {
-//     const hostname = new URL(details.url).hostname;
-//     const txIdHeader = details.requestHeaders.find(
-//       (header) => header.name.toLowerCase() === "x-forgerock-transactionid"
-//     );
-//     console.log("Headers Request Id", details.requestId);
-
-//     const journeyTxId = txIdHeader.value;
-//     console.log("Starting for txid", journeyTxId);
-//     addJourneyStep(journeyTxId, details.requestId);
-
-//     fetchLog(
-//       hostname,
-//       "am-core",
-//       journeyTxId,
-//       getLogApiCredentials(),
-//       FETCH_INTERVAL_MS
-//     );
-//   },
-//   {
-//     urls: ["https://*.forgeblocks.com/*/authenticate?*"],
-//   },
-//   ["requestHeaders"]
-// );
-
-// chrome.runtime.onInstalled.addListener(() => {
-//   chrome.contextMenus.create({
-//     id: "startCapture",
-//     title: "Start Capture",
-//     contexts: ["all"],
-//   });
-// });
-
-// chrome.contextMenus.onClicked.addListener((info, tab) => {
-//   if (info.menuItemId === "startCapture") {
-//     chrome.sidePanel.open({ tabId: tab.id });
-//     chrome.debugger.attach({ tabId: tab.id }, "1.2", function () {
-//       chrome.debugger.sendCommand(
-//         { tabId: tab.id },
-//         "Network.enable",
-//         {},
-//         function () {
-//           if (chrome.runtime.lastError) {
-//             console.error(chrome.runtime.lastError);
-//           }
-//         }
-//       );
-//     });
-//   }
-// });
-
-console.log("debugger.js started");
-// chrome.debugger.onEvent.addListener(function (source, method, params) {
-//   if (method === "Network.responseReceived") {
-//     console.log("Response received:", params.response);
-//     // Perform your desired action with the response data
-//   }
-// });
 
 const journeyDiv = document.getElementById("journeyRequests");
 
-chrome.devtools.network.onRequestFinished.addListener(function (details) {
-  addJourneyStep(details);
-});
+function createHeadersDiv(headers) {
+  let headersDiv = document.createElement("div");
+  headersDiv.className = "http-headers";
 
-function harHeadersToTable(headers) {
   const table = document.createElement("table");
 
-  // Create table header
-  //   const thead = document.createElement("thead");
-  //   const headerRow = document.createElement("tr");
-  //   ["Name", "Value"].forEach((text) => {
-  //     const th = document.createElement("th");
-  //     th.textContent = text;
-  //     headerRow.appendChild(th);
-  //   });
-  //   thead.appendChild(headerRow);
-  //   table.appendChild(thead);
-
-  // Create table body
   const tbody = document.createElement("tbody");
   headers.forEach((header) => {
     const row = document.createElement("tr");
@@ -373,5 +301,32 @@ function harHeadersToTable(headers) {
   });
   table.appendChild(tbody);
 
-  return table;
+  let headerContentDiv = document.createElement("div");
+  headerContentDiv.className = "http-headers-content";
+  headersDiv.appendChild(table);
+
+  return headersDiv;
 }
+
+chrome.devtools.network.onRequestFinished.addListener(function (
+  requestDetails
+) {
+  const targetUrl = new URL(requestDetails.request.url);
+  if (!targetUrl.pathname.endsWith("/authenticate")) {
+    return;
+  }
+  const targetHost = getTargetHostByHostname(targetUrl.hostname);
+  if (!targetHost) {
+    return;
+  }
+
+  console.log("adding stage", JSON.stringify(targetHost));
+
+  addStage(targetHost, requestDetails);
+});
+
+document
+  .getElementById("log-refresh-button")
+  .addEventListener("click", function (event) {
+    refreshAllLogs();
+  });

@@ -38,6 +38,8 @@
       border: 1px solid #ddd;
       border-radius: 5px;
       padding: 10px;
+      word-break: break-all;
+      width: 100%;
     }
     .debugger-header {
       position: fixed;
@@ -60,11 +62,35 @@
     .status-bar {
       display: inline-block;
     }
+    .journey-stage {
+      padding: 5px;
+    }
+    .expander-arrow {
+      font-size: 8pt;
+      width: 15px;
+      text-align: center;
+      display: block;
+      margin-right: 5px;
+      padding-top: 2pt;
+    }
+    .stage-title {
+      vertical-align: middle;
+      display: flex;
+    }
+    .stage-title-text {
+      vertical-align: middle;
+    }
+    .stage-content {
+      margin-left: 25px;
+    }
   </style>
   <body>
     <div class="debugger-header">
-      <img src="images/clear-12.png" /> | Status:
-      <div id="current-status" class="status-bar">Idle</div>
+      Log entries:
+      <div id="log-status" class="status-bar">0</div>
+      <input type="image" id="log-refresh-button" src="images/refresh-12.png" />
+      |
+      <input type="image" id="clear-button" src="images/clear-12.png" />
     </div>
     <div class="debugger-output" id="journeyRequests"></div>
     <script src="common/config.js"></script>
