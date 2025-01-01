@@ -205,15 +205,18 @@ function addStage(targetHost, details) {
 
   let requestDiv = document.createElement("div");
   let requestDetailsDiv = document.createElement("div");
+  requestDetailsDiv.className = "request-details";
 
-  // stageContentDiv.appendChild(requestDiv);
-
-  // let requestTitleDiv = document.createElement("div");
-  // requestTitleDiv.className = "http-request-title";
-  // requestTitleDiv.innerHTML = "Request details";
-  // requestDiv.appendChild(requestTitleDiv);
-
+  let requestHeadersHeaderDiv = document.createElement("div");
+  requestHeadersHeaderDiv.innerHTML = "Request headers";
+  requestHeadersHeaderDiv.className = "request-section-title";
+  requestDetailsDiv.appendChild(requestHeadersHeaderDiv);
   requestDetailsDiv.appendChild(createHeadersDiv(details.request.headers));
+
+  let requestBodyHeaderDiv = document.createElement("div");
+  requestBodyHeaderDiv.innerHTML = "Request payload";
+  requestBodyHeaderDiv.className = "request-section-title";
+  requestDetailsDiv.appendChild(requestBodyHeaderDiv);
 
   const requestBodyDiv = document.createElement("div");
   requestBodyDiv.className = "json-container";
@@ -225,41 +228,68 @@ function addStage(targetHost, details) {
   stageContentDiv.appendChild(requestDiv);
 
   let responseDiv = document.createElement("div");
-  stageContentDiv.appendChild(responseDiv);
+  let responseDetailsDiv = document.createElement("div");
 
-  let responseTitleDiv = document.createElement("div");
-  responseTitleDiv.className = "http-request-title";
-  responseTitleDiv.innerHTML = "Response details";
-  responseDiv.appendChild(responseTitleDiv);
-
-  responseDiv.appendChild(createHeadersDiv(details.response.headers));
+  responseDetailsDiv.appendChild(createHeadersDiv(details.response.headers));
 
   const responseBodyDivId = `response-body-${txId.full}`;
   const responseBodyDiv = document.createElement("div");
   responseBodyDiv.className = "json-container";
   responseBodyDiv.id = responseBodyDivId;
-  responseDiv.appendChild(responseBodyDiv);
 
-  let logsDiv = document.createElement("div");
-  stageContentDiv.appendChild(logsDiv);
-
-  let logTitleDiv = document.createElement("div");
-  logTitleDiv.className = "logs-title";
-  logTitleDiv.innerHTML = `Logs`;
-  logsDiv.appendChild(logTitleDiv);
-
-  const logEntriesDiv = document.createElement("div");
-  logEntriesDiv.id = `log-${txId.full}`;
-  logEntriesDiv.className = "json-container";
-  logsDiv.appendChild(logEntriesDiv);
-
-  journeyDiv.appendChild(stageDiv);
+  responseDetailsDiv.appendChild(responseBodyDiv);
 
   details.getContent((content) => {
     $(`#${responseBodyDivId}`).text(
       JSON.stringify(JSON.parse(content), null, 2)
     );
   });
+
+  addCollapsedContainer(responseDiv, responseDetailsDiv, "Response details");
+
+  stageContentDiv.appendChild(responseDiv);
+
+  // let responseDiv = document.createElement("div");
+  // stageContentDiv.appendChild(responseDiv);
+
+  // let responseTitleDiv = document.createElement("div");
+  // responseTitleDiv.className = "http-request-title";
+  // responseTitleDiv.innerHTML = "Response details";
+  // responseDiv.appendChild(responseTitleDiv);
+
+  // responseDiv.appendChild(createHeadersDiv(details.response.headers));
+
+  // const responseBodyDivId = `response-body-${txId.full}`;
+  // const responseBodyDiv = document.createElement("div");
+  // responseBodyDiv.className = "json-container";
+  // responseBodyDiv.id = responseBodyDivId;
+  // responseDiv.appendChild(responseBodyDiv);
+
+  let logsDiv = document.createElement("div");
+
+  const logEntriesDiv = document.createElement("div");
+  logEntriesDiv.id = `log-${txId.full}`;
+  logEntriesDiv.className = "json-container";
+  addCollapsedContainer(logsDiv, logEntriesDiv, "Logs");
+
+  // const logEntriesDiv = document.createElement("div");
+  // logEntriesDiv.id = `log-${txId.full}`;
+  // logEntriesDiv.className = "json-container";
+  // logsDiv.appendChild(logEntriesDiv);
+
+  stageContentDiv.appendChild(logsDiv);
+
+  // let logTitleDiv = document.createElement("div");
+  // logTitleDiv.className = "logs-title";
+  // logTitleDiv.innerHTML = `Logs`;
+  // logsDiv.appendChild(logTitleDiv);
+
+  // const logEntriesDiv = document.createElement("div");
+  // logEntriesDiv.id = `log-${txId.full}`;
+  // logEntriesDiv.className = "json-container";
+  // logsDiv.appendChild(logEntriesDiv);
+
+  journeyDiv.appendChild(stageDiv);
 }
 
 const journeyDiv = document.getElementById("journeyRequests");
