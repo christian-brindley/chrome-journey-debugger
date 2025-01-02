@@ -7,13 +7,13 @@ function setLogStatus(status) {
   $("#log-status").html(status);
 }
 
-async function fetchLog(hostname, logStream, txId, logApiCredentials) {
+async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
   setLogStatus("Fetching");
   let pagedResultsCookie = null;
   let logEntries = [];
   while (true) {
     const today = new Date().toISOString().slice(0, 10);
-    let url = `https://${hostname}/monitoring/logs?_prettyPrint=false&source=${logStream}&transactionId=${txId}&beginTime=${today}T00:00:00Z&endTime=${today}T23:59:59Z`;
+    let url = `https://${hostname}/monitoring/logs?_prettyPrint=false&source=${logStream}&transactionId=${txId}&beginTime=${today}T00:00:00Z&endTime=${endTime}`;
     console.log("Calling Log API on", url);
     if (pagedResultsCookie) {
       url += `&_pagedResultsCookie=${pagedResultsCookie}`;
@@ -45,38 +45,30 @@ async function fetchLog(hostname, logStream, txId, logApiCredentials) {
 }
 
 async function refreshAllLogs() {
-  journeySessions.forEach((journeySession) => {
-    const targetHost = journeySession.targetHost;
-    refreshLog(targetHost.hostname, journeySession.txId, {
-      key: targetHost.logKey,
-      secret: targetHost.logSecret,
-    });
-  });
+  for (const txId of Object.keys(requestHistory)) {
+    const request = requestHistory[txId];
+    const targetHost = request.targetHost;
+    request.logs = await fetchLog(
+      targetHost.hostname,
+      "am-core",
+      txId,
+      { key: targetHost.logKey, secret: targetHost.logSecret },
+      request.endTime
+    );
+  }
+
+  displayLogs();
 }
 
-async function refreshLog(hostname, txId, logApiCredentials) {
-  const logEntries = await fetchLog(
-    hostname,
-    "am-core",
-    txId,
-    logApiCredentials
-  );
-
-  let sortedEntries = {};
-
-  logEntries.forEach((logEntry) => {
-    const entryTxId = logEntry.payload.transactionId.split("/")[0];
-    if (!sortedEntries[entryTxId]) {
-      sortedEntries[entryTxId] = [];
-    }
-    sortedEntries[entryTxId].push(logEntry);
-  });
-
-  Object.keys(sortedEntries).forEach((entryTxId) => {
-    let logDiv = document.getElementById(`log-${entryTxId}`);
-    if (logDiv) {
-      logDiv.innerHTML = JSON.stringify(sortedEntries[entryTxId], null, 2);
-    }
+function displayLogs(filter) {
+  Object.keys(requestHistory).forEach((txId) => {
+    console.log(
+      "settings logs for",
+      txId,
+      "length",
+      requestHistory[txId].logs.length
+    );
+    $(`#log-${txId}`).text(JSON.stringify(requestHistory[txId].logs, null, 2));
   });
 }
 
@@ -97,34 +89,14 @@ function getTxId(request) {
   };
 }
 
-let journeySessions = [];
+let requestHistory = {};
 
-function addJourneySession(targetHost, txId) {
-  var journeyDiv = document.getElementById(txId);
-  if (journeyDiv) {
-    return journeyDiv;
-  }
-
-  journeySessions.push({ targetHost: targetHost, txId: txId });
-
-  const parentDiv = document.getElementById("journeyRequests");
-
-  journeyDiv = document.createElement("div");
-  journeyDiv.className = "journey-container";
-  journeyDiv.id = txId;
-
-  let journeyTitleDiv = document.createElement("div");
-  journeyTitleDiv.className = "journey-title";
-  journeyTitleDiv.innerHTML = `Start - ${targetHost.hostname}/${txId}`;
-  journeyDiv.appendChild(journeyTitleDiv);
-
-  if (parentDiv) {
-    parentDiv.appendChild(journeyDiv);
-  } else {
-    console.error("Parent div not found!");
-  }
-
-  return journeyDiv;
+function addRequest(targetHost, txId) {
+  requestHistory[txId.full] = {
+    targetHost: targetHost,
+    endTime: new Date().toISOString(),
+  };
+  console.log("added request - history now", JSON.stringify(requestHistory));
 }
 
 var requestPayloads = {};
@@ -188,16 +160,19 @@ function addCollapsedContainer(parentContainer, container, title, expand) {
 }
 
 function addStage(targetHost, details) {
+  const journeyDiv = document.getElementById("journeyRequests");
+
   // Request payload
   const jsonPayload = details.request.postData;
   const requestPayload = jsonPayload ? JSON.parse(jsonPayload.text) : null;
+
   // txId
 
   const txId = getTxId(details.request);
 
   // Add to debug pane
 
-  const journeyDiv = addJourneySession(targetHost, txId.base);
+  addRequest(targetHost, txId);
 
   const stageDiv = document.createElement("div");
   stageDiv.id = txId.full;
