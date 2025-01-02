@@ -16,7 +16,13 @@ chrome.devtools.panels.create(
   "Journey Debugger",
   "images/bug-16.png",
   "debugger.html",
-  () => {
-    console.log("user switched to this panel");
+  (panel) => {
+    panel.onSearch.addListener((action, queryString) => {
+      // panel.setSearchResultsCount(16);
+      chrome.runtime.sendMessage({
+        type: "search",
+        payload: { action, queryString },
+      });
+    });
   }
 );

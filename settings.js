@@ -142,6 +142,7 @@ $(document).ready(function () {
     });
     const logConfig = {
       automatic: $("#logs-fetch-automatically").is(":checked"),
+      expand: $("#logs-expand").is(":checked"),
       streams: streams,
     };
     console.log("log config now", JSON.stringify(logConfig));
@@ -272,6 +273,7 @@ function loadTargetHosts() {
 function loadLogConfig() {
   const logConfig = getLogConfig();
   $("#logs-fetch-automatically").prop("checked", logConfig.automatic);
+  $("#logs-expand").prop("checked", logConfig.expand);
   LOG_STREAMS.forEach((stream) => {
     $(`#logs-streams-${stream}`).prop("checked", logConfig.streams[stream]);
   });

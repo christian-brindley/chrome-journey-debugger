@@ -159,10 +159,11 @@ function syntaxHighlight(json) {
   );
 }
 
-function addCollapsedContainer(parentContainer, container, title) {
+function addCollapsedContainer(parentContainer, container, title, expand) {
+  const rightArrow = "&#9654;";
   let expanderSpan = document.createElement("span");
   expanderSpan.className = "expander-arrow";
-  expanderSpan.innerHTML = "&#9654;";
+  expanderSpan.innerHTML = rightArrow;
 
   let titleDiv = document.createElement("div");
   titleDiv.className = "stage-title";
@@ -176,7 +177,12 @@ function addCollapsedContainer(parentContainer, container, title) {
     expanderSpan.style.transform = isHidden ? "rotate(90deg)" : "rotate(0deg)";
   });
 
-  container.style.display = "none";
+  if (expand) {
+    container.style.display = "block";
+    expanderSpan.style.transform = "rotate(90deg)";
+  } else {
+    container.style.display = "none";
+  }
   parentContainer.appendChild(titleDiv);
   parentContainer.appendChild(container);
 }
@@ -201,19 +207,25 @@ function addStage(targetHost, details) {
   const stageContentDiv = document.createElement("div");
   stageContentDiv.className = "stage-content";
 
-  addCollapsedContainer(stageDiv, stageContentDiv, `Stage [${txId.request}]`);
+  addCollapsedContainer(stageDiv, stageContentDiv, `Request [${txId.request}]`);
 
-  let requestDiv = document.createElement("div");
-  let requestDetailsDiv = document.createElement("div");
+  // Request details
+
+  const requestDiv = document.createElement("div");
+  const requestDetailsDiv = document.createElement("div");
   requestDetailsDiv.className = "request-details";
 
-  let requestHeadersHeaderDiv = document.createElement("div");
+  // Request headers
+
+  const requestHeadersHeaderDiv = document.createElement("div");
   requestHeadersHeaderDiv.innerHTML = "Request headers";
   requestHeadersHeaderDiv.className = "request-section-title";
   requestDetailsDiv.appendChild(requestHeadersHeaderDiv);
   requestDetailsDiv.appendChild(createHeadersDiv(details.request.headers));
 
-  let requestBodyHeaderDiv = document.createElement("div");
+  // Request body
+
+  const requestBodyHeaderDiv = document.createElement("div");
   requestBodyHeaderDiv.innerHTML = "Request payload";
   requestBodyHeaderDiv.className = "request-section-title";
   requestDetailsDiv.appendChild(requestBodyHeaderDiv);
@@ -227,10 +239,26 @@ function addStage(targetHost, details) {
 
   stageContentDiv.appendChild(requestDiv);
 
-  let responseDiv = document.createElement("div");
-  let responseDetailsDiv = document.createElement("div");
+  // Response details
 
+  const responseDiv = document.createElement("div");
+  const responseDetailsDiv = document.createElement("div");
+  responseDetailsDiv.className = "request-details";
+
+  // Response headers
+
+  const responseHeadersHeaderDiv = document.createElement("div");
+  responseHeadersHeaderDiv.innerHTML = "Response headers";
+  responseHeadersHeaderDiv.className = "request-section-title";
+  responseDetailsDiv.appendChild(responseHeadersHeaderDiv);
   responseDetailsDiv.appendChild(createHeadersDiv(details.response.headers));
+
+  // Response body
+
+  const responseBodyHeaderDiv = document.createElement("div");
+  responseBodyHeaderDiv.innerHTML = "Response payload";
+  responseBodyHeaderDiv.className = "request-section-title";
+  responseDetailsDiv.appendChild(responseBodyHeaderDiv);
 
   const responseBodyDivId = `response-body-${txId.full}`;
   const responseBodyDiv = document.createElement("div");
@@ -239,58 +267,53 @@ function addStage(targetHost, details) {
 
   responseDetailsDiv.appendChild(responseBodyDiv);
 
+  addCollapsedContainer(responseDiv, responseDetailsDiv, "Response details");
+
+  stageContentDiv.appendChild(responseDiv);
+
   details.getContent((content) => {
     $(`#${responseBodyDivId}`).text(
       JSON.stringify(JSON.parse(content), null, 2)
     );
   });
 
-  addCollapsedContainer(responseDiv, responseDetailsDiv, "Response details");
+  // Logs
 
-  stageContentDiv.appendChild(responseDiv);
-
-  // let responseDiv = document.createElement("div");
-  // stageContentDiv.appendChild(responseDiv);
-
-  // let responseTitleDiv = document.createElement("div");
-  // responseTitleDiv.className = "http-request-title";
-  // responseTitleDiv.innerHTML = "Response details";
-  // responseDiv.appendChild(responseTitleDiv);
-
-  // responseDiv.appendChild(createHeadersDiv(details.response.headers));
-
-  // const responseBodyDivId = `response-body-${txId.full}`;
-  // const responseBodyDiv = document.createElement("div");
-  // responseBodyDiv.className = "json-container";
-  // responseBodyDiv.id = responseBodyDivId;
-  // responseDiv.appendChild(responseBodyDiv);
-
-  let logsDiv = document.createElement("div");
+  const logsDiv = document.createElement("div");
+  logsDiv.className = "log-container";
 
   const logEntriesDiv = document.createElement("div");
   logEntriesDiv.id = `log-${txId.full}`;
   logEntriesDiv.className = "json-container";
-  addCollapsedContainer(logsDiv, logEntriesDiv, "Logs");
+  logEntriesDiv.innerText = "Pending logs";
 
-  // const logEntriesDiv = document.createElement("div");
-  // logEntriesDiv.id = `log-${txId.full}`;
-  // logEntriesDiv.className = "json-container";
-  // logsDiv.appendChild(logEntriesDiv);
-
-  stageContentDiv.appendChild(logsDiv);
-
-  // let logTitleDiv = document.createElement("div");
-  // logTitleDiv.className = "logs-title";
-  // logTitleDiv.innerHTML = `Logs`;
-  // logsDiv.appendChild(logTitleDiv);
-
-  // const logEntriesDiv = document.createElement("div");
-  // logEntriesDiv.id = `log-${txId.full}`;
-  // logEntriesDiv.className = "json-container";
-  // logsDiv.appendChild(logEntriesDiv);
-
+  addCollapsedContainer(logsDiv, logEntriesDiv, "Logs", getLogConfig().expand);
   journeyDiv.appendChild(stageDiv);
+  journeyDiv.appendChild(logsDiv);
+  // if (getLogConfig().collapse) {
+  //   const logsDiv = document.createElement("div");
+  //   addCollapsedContainer(logsDiv, logEntriesDiv, "Logs");
+  //   stageContentDiv.appendChild(logsDiv);
+  //   journeyDiv.appendChild(stageDiv);
+  // } else {
+  //   journeyDiv.appendChild(stageDiv);
+  //   journeyDiv.appendChild(logEntriesDiv);
 }
+
+// const logEntriesDiv = document.createElement("div");
+// logEntriesDiv.id = `log-${txId.full}`;
+// logEntriesDiv.className = "json-container";
+// logsDiv.appendChild(logEntriesDiv);
+
+// let logTitleDiv = document.createElement("div");
+// logTitleDiv.className = "logs-title";
+// logTitleDiv.innerHTML = `Logs`;
+// logsDiv.appendChild(logTitleDiv);
+
+// const logEntriesDiv = document.createElement("div");
+// logEntriesDiv.id = `log-${txId.full}`;
+// logEntriesDiv.className = "json-container";
+// logsDiv.appendChild(logEntriesDiv);
 
 const journeyDiv = document.getElementById("journeyRequests");
 
@@ -345,3 +368,80 @@ document
   .addEventListener("click", function (event) {
     refreshAllLogs();
   });
+
+chrome.runtime.onMessage.addListener((event) => {
+  console.log("event", JSON.stringify(event));
+  if (event.type === "search") {
+    if (event.payload.action === "performSearch") {
+      performSearch(event.payload.queryString);
+      //event.callback({ matches: 16 });
+      //event.payload.panel.setSearchResults(16, 0);
+    } else if (event.payload.action === "nextResult") {
+      navigateSearch(1);
+    } else if (event.payload.action === "previousResult") {
+      navigateSearch(-1);
+    } else if (event.payload.action === "cancelSearch") {
+      cancelSearch();
+    }
+  }
+});
+
+// function performSearch(query) {
+//   const resultsDiv = document.getElementById("results");
+
+//   if (!query) {
+//     resultsDiv.textContent = "No search query provided.";
+//     return;
+//   }
+
+//   // Highlight and scroll to matches
+//   const regex = new RegExp(query, "gi");
+//   const matches = [...content.matchAll(regex)];
+
+//   if (matches.length > 0) {
+//     let highlightedContent = content.replace(
+//       regex,
+//       (match) => `<mark>${match}</mark>`
+//     );
+//     resultsDiv.innerHTML = highlightedContent;
+
+//     // Scroll to the first match
+//     const firstMatch = document.querySelector("mark");
+//     if (firstMatch) {
+//       firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+//     }
+//   } else {
+//     resultsDiv.textContent = `No results found for "${query}".`;
+//   }
+// }
+
+// function performSearch(query) {
+//   console.log(`Searching for: "${query}"`);
+
+//   // Add logic to search and display results here
+// }
+
+// function cancelSearch() {
+//   console.log("Search canceled.");
+// }
+
+// function nextSearchResult() {
+//   console.log("Search next.");
+// }
+
+// function previousSearchResult() {
+//   console.log("Search previous.");
+// }
+
+function performSearch(queryString, panel) {
+  console.log(`Searching for: "${queryString}"`);
+  // Add logic to search and display results here
+}
+
+function cancelSearch(panel) {
+  console.log("Search canceled.");
+}
+
+function navigateSearch(index, panel) {
+  console.log("Navigate");
+}

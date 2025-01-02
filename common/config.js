@@ -14,6 +14,7 @@ function getLogConfig() {
   if (!logConfig) {
     return {
       automatic: true,
+      expand: false,
       streams: { "am-core": true },
     };
   }
