@@ -1,4 +1,6 @@
-const FETCH_INTERVAL_MS = 10000;
+const LOG_FETCH_INTERVAL_MS = 10000;
+const LOG_COMPLETE_WINDOW_MS = 2000;
+const LOG_END_TIME_GRACE_S = 1;
 
 function setLogStatus(status) {
   if (!status) {
@@ -8,13 +10,13 @@ function setLogStatus(status) {
 }
 
 async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
-  setLogStatus("Fetching");
+  setLogStatus("Fetching logs");
   let pagedResultsCookie = null;
   let logEntries = [];
   while (true) {
     const today = new Date().toISOString().slice(0, 10);
     let url = `https://${hostname}/monitoring/logs?_prettyPrint=false&source=${logStream}&transactionId=${txId}&beginTime=${today}T00:00:00Z&endTime=${endTime}`;
-    console.log("Calling Log API on", url);
+    //console.log("Calling Log API on", url);
     if (pagedResultsCookie) {
       url += `&_pagedResultsCookie=${pagedResultsCookie}`;
     }
@@ -33,20 +35,23 @@ async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
     }
 
     const data = await response.json();
-    console.log("got data", data);
+    //console.log("got data", data);
     logEntries = logEntries.concat(data.result);
     pagedResultsCookie = data.pagedResultsCookie;
     if (!pagedResultsCookie) {
       break;
     }
   }
-  setLogStatus(logEntries.length);
+  setLogStatus("Idle");
   return logEntries;
 }
 
 async function refreshAllLogs() {
   for (const txId of Object.keys(requestHistory)) {
     const request = requestHistory[txId];
+    if (logsComplete(request)) {
+      continue;
+    }
     const targetHost = request.targetHost;
     request.logs = await fetchLog(
       targetHost.hostname,
@@ -62,14 +67,26 @@ async function refreshAllLogs() {
 
 function displayLogs(filter) {
   Object.keys(requestHistory).forEach((txId) => {
-    console.log(
-      "settings logs for",
-      txId,
-      "length",
-      requestHistory[txId].logs.length
+    const request = requestHistory[txId];
+    $(`#log-${txId}`).text(JSON.stringify(request.logs, null, 2));
+    const continuationIndicator = logsComplete(request) ? "" : "...";
+    $(`#log-${txId}-title`).html(
+      `Log [${request.logs.length}${continuationIndicator}]`
     );
-    $(`#log-${txId}`).text(JSON.stringify(requestHistory[txId].logs, null, 2));
   });
+}
+
+function logsComplete(request) {
+  if (!request.logs || request.logs.length === 0) {
+    return false;
+  }
+
+  const lastLogTime = new Date(request.logs[request.logs.length - 1].timestamp);
+  const requestEndTime = new Date(request.endTime);
+
+  const timeGap = requestEndTime - lastLogTime;
+  console.log("gap", timeGap);
+  return timeGap < LOG_COMPLETE_WINDOW_MS;
 }
 
 function getTxId(request) {
@@ -90,13 +107,16 @@ function getTxId(request) {
 }
 
 let requestHistory = {};
+let transactionHistory = [];
 
 function addRequest(targetHost, txId) {
+  var now = new Date();
+  now.setSeconds(now.getSeconds() + LOG_END_TIME_GRACE_S);
+
   requestHistory[txId.full] = {
     targetHost: targetHost,
-    endTime: new Date().toISOString(),
+    endTime: now.toISOString(),
   };
-  console.log("added request - history now", JSON.stringify(requestHistory));
 }
 
 var requestPayloads = {};
@@ -140,8 +160,10 @@ function addCollapsedContainer(parentContainer, container, title, expand) {
   let titleDiv = document.createElement("div");
   titleDiv.className = "stage-title";
   titleDiv.appendChild(expanderSpan);
-  let titleText = document.createTextNode(title);
+  let titleText = document.createElement("span");
+  titleText.innerHTML = title;
   titleText.className = "stage-title-text";
+  titleText.id = `${container.id}-title`;
   titleDiv.appendChild(titleText);
   titleDiv.addEventListener("click", () => {
     const isHidden = container.style.display === "none";
@@ -170,6 +192,15 @@ function addStage(targetHost, details) {
 
   const txId = getTxId(details.request);
 
+  if (!transactionHistory.includes(txId.base)) {
+    transactionHistory.push(txId.base);
+
+    transactionDiv = document.createElement("div");
+    transactionDiv.className = "transaction-header";
+    transactionDiv.innerHTML = `Transaction ${txId.base}-*`;
+    journeyDiv.appendChild(transactionDiv);
+  }
+
   // Add to debug pane
 
   addRequest(targetHost, txId);
@@ -182,7 +213,7 @@ function addStage(targetHost, details) {
   const stageContentDiv = document.createElement("div");
   stageContentDiv.className = "stage-content";
 
-  addCollapsedContainer(stageDiv, stageContentDiv, `Request [${txId.request}]`);
+  addCollapsedContainer(stageDiv, stageContentDiv, txId.request);
 
   // Request details
 
@@ -210,7 +241,7 @@ function addStage(targetHost, details) {
   requestBodyDiv.textContent = JSON.stringify(requestPayload, null, 2);
   requestDetailsDiv.appendChild(requestBodyDiv);
 
-  addCollapsedContainer(requestDiv, requestDetailsDiv, "Request details");
+  addCollapsedContainer(requestDiv, requestDetailsDiv, "Request");
 
   stageContentDiv.appendChild(requestDiv);
 
@@ -242,7 +273,7 @@ function addStage(targetHost, details) {
 
   responseDetailsDiv.appendChild(responseBodyDiv);
 
-  addCollapsedContainer(responseDiv, responseDetailsDiv, "Response details");
+  addCollapsedContainer(responseDiv, responseDetailsDiv, "Response");
 
   stageContentDiv.appendChild(responseDiv);
 
@@ -260,35 +291,17 @@ function addStage(targetHost, details) {
   const logEntriesDiv = document.createElement("div");
   logEntriesDiv.id = `log-${txId.full}`;
   logEntriesDiv.className = "json-container";
-  logEntriesDiv.innerText = "Pending logs";
+  logEntriesDiv.innerText = "...";
 
-  addCollapsedContainer(logsDiv, logEntriesDiv, "Logs", getLogConfig().expand);
+  addCollapsedContainer(
+    logsDiv,
+    logEntriesDiv,
+    "Log [...]",
+    getLogConfig().expand
+  );
   journeyDiv.appendChild(stageDiv);
   journeyDiv.appendChild(logsDiv);
-  // if (getLogConfig().collapse) {
-  //   const logsDiv = document.createElement("div");
-  //   addCollapsedContainer(logsDiv, logEntriesDiv, "Logs");
-  //   stageContentDiv.appendChild(logsDiv);
-  //   journeyDiv.appendChild(stageDiv);
-  // } else {
-  //   journeyDiv.appendChild(stageDiv);
-  //   journeyDiv.appendChild(logEntriesDiv);
 }
-
-// const logEntriesDiv = document.createElement("div");
-// logEntriesDiv.id = `log-${txId.full}`;
-// logEntriesDiv.className = "json-container";
-// logsDiv.appendChild(logEntriesDiv);
-
-// let logTitleDiv = document.createElement("div");
-// logTitleDiv.className = "logs-title";
-// logTitleDiv.innerHTML = `Logs`;
-// logsDiv.appendChild(logTitleDiv);
-
-// const logEntriesDiv = document.createElement("div");
-// logEntriesDiv.id = `log-${txId.full}`;
-// logEntriesDiv.className = "json-container";
-// logsDiv.appendChild(logEntriesDiv);
 
 const journeyDiv = document.getElementById("journeyRequests");
 
@@ -333,7 +346,7 @@ chrome.devtools.network.onRequestFinished.addListener(function (
     return;
   }
 
-  console.log("adding stage", JSON.stringify(targetHost));
+  //console.log("adding stage", JSON.stringify(targetHost));
 
   addStage(targetHost, requestDetails);
 });
@@ -345,12 +358,10 @@ document
   });
 
 chrome.runtime.onMessage.addListener((event) => {
-  console.log("event", JSON.stringify(event));
+  //console.log("event", JSON.stringify(event));
   if (event.type === "search") {
     if (event.payload.action === "performSearch") {
       performSearch(event.payload.queryString);
-      //event.callback({ matches: 16 });
-      //event.payload.panel.setSearchResults(16, 0);
     } else if (event.payload.action === "nextResult") {
       navigateSearch(1);
     } else if (event.payload.action === "previousResult") {
@@ -360,53 +371,6 @@ chrome.runtime.onMessage.addListener((event) => {
     }
   }
 });
-
-// function performSearch(query) {
-//   const resultsDiv = document.getElementById("results");
-
-//   if (!query) {
-//     resultsDiv.textContent = "No search query provided.";
-//     return;
-//   }
-
-//   // Highlight and scroll to matches
-//   const regex = new RegExp(query, "gi");
-//   const matches = [...content.matchAll(regex)];
-
-//   if (matches.length > 0) {
-//     let highlightedContent = content.replace(
-//       regex,
-//       (match) => `<mark>${match}</mark>`
-//     );
-//     resultsDiv.innerHTML = highlightedContent;
-
-//     // Scroll to the first match
-//     const firstMatch = document.querySelector("mark");
-//     if (firstMatch) {
-//       firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
-//     }
-//   } else {
-//     resultsDiv.textContent = `No results found for "${query}".`;
-//   }
-// }
-
-// function performSearch(query) {
-//   console.log(`Searching for: "${query}"`);
-
-//   // Add logic to search and display results here
-// }
-
-// function cancelSearch() {
-//   console.log("Search canceled.");
-// }
-
-// function nextSearchResult() {
-//   console.log("Search next.");
-// }
-
-// function previousSearchResult() {
-//   console.log("Search previous.");
-// }
 
 function performSearch(queryString, panel) {
   console.log(`Searching for: "${queryString}"`);
@@ -420,3 +384,16 @@ function cancelSearch(panel) {
 function navigateSearch(index, panel) {
   console.log("Navigate");
 }
+
+function autoLog() {
+  if (getLogConfig().automatic) {
+    refreshAllLogs();
+  }
+  setTimeout(() => {
+    autoLog();
+  }, LOG_FETCH_INTERVAL_MS);
+}
+
+setTimeout(() => {
+  autoLog();
+}, LOG_FETCH_INTERVAL_MS);

@@ -63,7 +63,7 @@
       border-bottom: 1px solid lightgray;
       font-family: arial;
       font-size: 10pt;
-      padding: 5pt;
+      padding: 5px;
       z-index: 99;
     }
     .debugger-output {
@@ -74,6 +74,10 @@
     }
     .status-bar {
       display: inline-block;
+      width: 100px;
+      border: 1px solid lightgray;
+      border-radius: 3px;
+      padding-left: 3px;
     }
     .journey-stage {
       padding: 5px;
@@ -88,6 +92,7 @@
       display: block;
       margin-right: 5px;
       padding-top: 2pt;
+      color: #202020;
     }
     .stage-title {
       vertical-align: middle;
@@ -96,7 +101,6 @@
     }
     .stage-title-text {
       vertical-align: middle;
-      font-weight: bold;
     }
     .stage-content {
       margin-left: 25px;
@@ -112,13 +116,22 @@
     .log-container {
       padding-left: 5px;
     }
+    .debugger-header-divider {
+      margin-left: 5px;
+      margin-right: 5px;
+      border-left: 1px solid lightgray;
+    }
+    .transaction-header {
+      padding-left: 5px;
+      border: 1px solid lightgray;
+    }
   </style>
   <body>
     <div class="debugger-header">
-      Log entries:
-      <div id="log-status" class="status-bar">0</div>
+      Status:
+      <div id="log-status" class="status-bar">Idle</div>
       <input type="image" id="log-refresh-button" src="images/refresh-12.png" />
-      |
+      <span class="debugger-header-divider"></span>
       <input type="image" id="clear-button" src="images/clear-12.png" />
     </div>
     <div class="debugger-output" id="journeyRequests"></div>
