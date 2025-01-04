@@ -142,6 +142,7 @@ $(document).ready(function () {
     });
     const logConfig = {
       automatic: $("#logs-fetch-automatically").is(":checked"),
+      refreshInterval: parseInt($("#logs-refresh-interval").val()),
       expand: $("#logs-expand").is(":checked"),
       streams: streams,
     };
@@ -277,6 +278,7 @@ function loadLogConfig() {
   LOG_STREAMS.forEach((stream) => {
     $(`#logs-streams-${stream}`).prop("checked", logConfig.streams[stream]);
   });
+  $("#logs-refresh-interval").val(logConfig.refreshInterval);
 }
 
 function switchView(view) {

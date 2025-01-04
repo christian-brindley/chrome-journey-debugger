@@ -104,16 +104,29 @@
             <div class="form-row">
               <label>General</label>
             </div>
-            <div class="form-row">
+            <!--
+
               <div>
                 <input type="checkbox" id="logs-fetch-automatically" />
                 <label for="logs-fetch-automatically"
                   >Fetch logs automatically</label
                 >
               </div>
+              -->
+            <div class="form-row">
               <div>
                 <input type="checkbox" id="logs-expand" />
                 <label for="logs-expand">Expand logs</label>
+              </div>
+              <div>
+                <input type="checkbox" id="logs-fetch-automatically" />
+                <label for="logs-fetch-automatically">Refresh every</label>
+                <select id="logs-refresh-interval">
+                  <option value="5">5 seconds</option>
+                  <option value="10">10 seconds</option>
+                  <option value="15">15 seconds</option>
+                  <option value="20">20 seconds</option>
+                </select>
               </div>
             </div>
             <div class="form-row">&nbsp;</div>

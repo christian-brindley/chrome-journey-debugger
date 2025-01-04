@@ -10,7 +10,6 @@ function setLogStatus(status) {
 }
 
 async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
-  setLogStatus("Fetching logs");
   let pagedResultsCookie = null;
   let logEntries = [];
   while (true) {
@@ -42,16 +41,27 @@ async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
       break;
     }
   }
-  setLogStatus("Idle");
+
   return logEntries;
 }
 
+let logRefreshing = false;
+
 async function refreshAllLogs() {
+  if (logRefreshing) {
+    console.log("Already refreshing");
+    return;
+  }
+
+  logRefreshing = true;
+  setLogStatus("Fetching logs");
+  let refreshed = false;
   for (const txId of Object.keys(requestHistory)) {
     const request = requestHistory[txId];
     if (logsComplete(request)) {
       continue;
     }
+    refreshed = true;
     const targetHost = request.targetHost;
     request.logs = await fetchLog(
       targetHost.hostname,
@@ -61,19 +71,103 @@ async function refreshAllLogs() {
       request.endTime
     );
   }
-
-  displayLogs();
+  setLogStatus();
+  if (refreshed) {
+    displayLogs();
+  }
+  logRefreshing = false;
 }
 
-function displayLogs(filter) {
+function getLogFilter() {
+  let filter = {};
+
+  filter.level = $("#filter-log-level").val();
+  const filterText = $("#filter-log-text").val();
+  if (filterText && filterText.length > 0) {
+    filter.text = filterText;
+  }
+  return filter;
+}
+
+function searchHighlight(inputText) {
+  const regex = new RegExp(currentSearchQuery, "gi");
+  const matches = [...inputText.matchAll(regex)];
+  // console.log("got", matches.length, "matches");
+  if (matches.length > 0) {
+    inputText = inputText.replace(regex, (match) => `<mark>${match}</mark>`);
+  }
+
+  // const matches = document.body.innerHTML.matchAll(regex);
+  // if (matches.length > 0) {
+  //   let highlightedContent = content.replace(
+  //     regex,
+  //     (match) => `<mark>${match}</mark>`
+  //   );
+  //   const firstMatch = document.querySelector("mark");
+  //   if (firstMatch) {
+  //     firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+  //   }
+  // }
+  return inputText;
+}
+
+function escapeHtml(inputText) {
+  return inputText
+    .replace("&", "&amp;")
+    .replace("<", "&lt;")
+    .replace(">", "&gt;");
+}
+
+function displayLogs() {
   Object.keys(requestHistory).forEach((txId) => {
     const request = requestHistory[txId];
-    $(`#log-${txId}`).text(JSON.stringify(request.logs, null, 2));
+    $(`#log-${txId}`).html(
+      searchHighlight(
+        escapeHtml(
+          JSON.stringify(filterLogs(request.logs, getLogFilter()), null, 2)
+        )
+      )
+    );
     const continuationIndicator = logsComplete(request) ? "" : "...";
     $(`#log-${txId}-title`).html(
       `Log [${request.logs.length}${continuationIndicator}]`
     );
   });
+}
+
+function filterLogs(logs, filter) {
+  if (!filter) {
+    return logs;
+  }
+  let filteredLogs = logs;
+  let levels = null;
+  if (filter.level) {
+    switch (filter.level) {
+      case "ERROR":
+        levels = ["ERROR"];
+        break;
+      case "WARN":
+        levels = ["WARN", "ERROR"];
+        break;
+      case "INFO":
+        levels = ["INFO", "WARN", "ERROR"];
+        break;
+      default:
+    }
+
+    if (levels) {
+      filteredLogs = filteredLogs.filter((logEntry) =>
+        levels.includes(logEntry.payload.level)
+      );
+    }
+  }
+
+  if (filter.text) {
+    filteredLogs = filteredLogs.filter((logEntry) =>
+      JSON.stringify(logEntry).toLowerCase().includes(filter.text.toLowerCase())
+    );
+  }
+  return filteredLogs;
 }
 
 function logsComplete(request) {
@@ -85,7 +179,7 @@ function logsComplete(request) {
   const requestEndTime = new Date(request.endTime);
 
   const timeGap = requestEndTime - lastLogTime;
-  console.log("gap", timeGap);
+  //console.log("gap", timeGap);
   return timeGap < LOG_COMPLETE_WINDOW_MS;
 }
 
@@ -127,28 +221,6 @@ function formatHeaders(headers) {
 
 function formatBody(body) {
   return "Body: " + JSON.stringify(body);
-}
-
-function syntaxHighlight(json) {
-  return json.replace(
-    /(\".*?\")|\b(true|false|null)\b|(-?\d+(\.\d+)?)/g,
-    (match) => {
-      if (/^\".*\"$/.test(match)) {
-        if (/^\".*\":$/.test(match)) {
-          return `<span class="json-key">${match}</span>`;
-        } else {
-          return `<span class="json-string">${match}</span>`;
-        }
-      }
-      if (/true|false/.test(match)) {
-        return `<span class="json-boolean">${match}</span>`;
-      }
-      if (/null/.test(match)) {
-        return `<span class="json-null">${match}</span>`;
-      }
-      return `<span class="json-number">${match}</span>`;
-    }
-  );
 }
 
 function addCollapsedContainer(parentContainer, container, title, expand) {
@@ -357,6 +429,24 @@ document
     refreshAllLogs();
   });
 
+document
+  .getElementById("clear-button")
+  .addEventListener("click", function (event) {
+    location.reload();
+  });
+
+document
+  .getElementById("filter-log-level")
+  .addEventListener("change", function (event) {
+    displayLogs();
+  });
+
+document
+  .getElementById("filter-log-text")
+  .addEventListener("change", function (event) {
+    displayLogs();
+  });
+
 chrome.runtime.onMessage.addListener((event) => {
   //console.log("event", JSON.stringify(event));
   if (event.type === "search") {
@@ -372,13 +462,44 @@ chrome.runtime.onMessage.addListener((event) => {
   }
 });
 
-function performSearch(queryString, panel) {
-  console.log(`Searching for: "${queryString}"`);
-  // Add logic to search and display results here
+let currentSearchQuery = null;
+
+function performSearch(query) {
+  currentSearchQuery = query;
+  displayLogs();
+  const firstMatch = document.querySelector("mark");
+  if (firstMatch) {
+    firstMatch.scrollIntoView({ behavior: "instant", block: "center" });
+  }
+  // const regex = new RegExp(query, "gi");
+  // Object.keys(requestHistory).forEach((txId) => {
+  //   const logDiv = document.getElementById(`log-${txId}`);
+  //   const matches = [...logDiv.innerHTML.matchAll(regex)];
+  //   console.log("got", matches.length, "matches");
+  //   if (matches.length > 0) {
+  //     logDiv.innerHTML = logDiv.innerHTML.replace(
+  //       regex,
+  //       (match) => `<mark>${match}</mark>`
+  //     );
+  //   }
+  // });
+  // const matches = document.body.innerHTML.matchAll(regex);
+  // if (matches.length > 0) {
+  //   let highlightedContent = content.replace(
+  //     regex,
+  //     (match) => `<mark>${match}</mark>`
+  //   );
+  //   const firstMatch = document.querySelector("mark");
+  //   if (firstMatch) {
+  //     firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+  //   }
+  // }
 }
 
 function cancelSearch(panel) {
   console.log("Search canceled.");
+  currentSearchQuery = null;
+  displayLogs();
 }
 
 function navigateSearch(index, panel) {
@@ -389,11 +510,13 @@ function autoLog() {
   if (getLogConfig().automatic) {
     refreshAllLogs();
   }
-  setTimeout(() => {
-    autoLog();
-  }, LOG_FETCH_INTERVAL_MS);
+
+  const refreshInterval = getLogConfig().refreshInterval;
+  if (refreshInterval) {
+    setTimeout(() => {
+      autoLog();
+    }, getLogConfig().refreshInterval * 1000);
+  }
 }
 
-setTimeout(() => {
-  autoLog();
-}, LOG_FETCH_INTERVAL_MS);
+autoLog();

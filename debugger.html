@@ -86,7 +86,7 @@
       width: 100%;
     }
     .expander-arrow {
-      font-size: 8pt;
+      font-size: 7pt;
       width: 15px;
       text-align: center;
       display: block;
@@ -118,21 +118,59 @@
     }
     .debugger-header-divider {
       margin-left: 5px;
-      margin-right: 5px;
+      margin-right: 8px;
       border-left: 1px solid lightgray;
     }
     .transaction-header {
       padding-left: 5px;
+      padding-top: 2px;
+      padding-bottom: 2px;
+      background-color: lightgray;
+    }
+    .debugger-header-select {
+      font-size: 9pt;
       border: 1px solid lightgray;
+      border-radius: 3px;
+      padding-left: 3px;
+    }
+    .log-filter-text {
+      font-size: 9pt;
+      border: 1px solid lightgray;
+      border-radius: 3px;
+      padding-left: 3px;
+      width: 100px;
+    }
+    mark {
+      background-color: yellow;
     }
   </style>
   <body>
     <div class="debugger-header">
-      Status:
-      <div id="log-status" class="status-bar">Idle</div>
-      <input type="image" id="log-refresh-button" src="images/refresh-12.png" />
+      <input
+        type="image"
+        id="clear-button"
+        src="images/clear-12.png"
+        title="Clear requests"
+      />
       <span class="debugger-header-divider"></span>
-      <input type="image" id="clear-button" src="images/clear-12.png" />
+      Status
+      <div id="log-status" class="status-bar">Idle</div>
+      <input
+        type="image"
+        id="log-refresh-button"
+        src="images/refresh-12.png"
+        title="Refresh logs"
+      />
+      <span class="debugger-header-divider"></span>
+      Level
+      <select id="filter-log-level" class="debugger-header-select">
+        <option>ALL</option>
+        <option>INFO</option>
+        <option>WARN</option>
+        <option>ERROR</option>
+      </select>
+      <span class="debugger-header-divider"></span>
+      Filter <input class="log-filter-text" id="filter-log-text" />
     </div>
     <div class="debugger-output" id="journeyRequests"></div>
     <script src="common/config.js"></script>
