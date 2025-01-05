@@ -436,7 +436,7 @@ document
   });
 
 chrome.runtime.onMessage.addListener((event) => {
-  console.log("event", JSON.stringify(event));
+  //console.log("event", JSON.stringify(event));
   if (event.type === "search") {
     if (event.payload.action === "performSearch") {
       performSearch(event.payload.queryString);
@@ -456,13 +456,9 @@ let searchState = {
   resultsCursor: null,
 };
 
-function scrollToCurrentSearchResult() {
-  console.log("scrolling to item", searchState.resultsCursor);
-  if (searchState.results) {
-    searchState.results
-      .item(searchState.resultsCursor)
-      .scrollIntoView({ behavior: "instant", block: "center" });
-  }
+function scrollToSearchResult(result) {
+  //console.log("scrolling to item", searchState.resultsCursor);
+  result.scrollIntoView({ behavior: "instant", block: "center" });
 }
 
 function performSearch(query) {
@@ -471,7 +467,11 @@ function performSearch(query) {
   searchState.results = document.querySelectorAll("mark");
   searchState.resultsCursor = 0;
 
-  scrollToCurrentSearchResult();
+  if (searchState.results.length > 0) {
+    const firstResult = searchState.results.item(0);
+    firstResult.className = "search-result-current";
+    scrollToSearchResult(firstResult);
+  }
 }
 
 function cancelSearch(panel) {
@@ -481,13 +481,22 @@ function cancelSearch(panel) {
 }
 
 function navigateSearch(index) {
+  if (!searchState.results) {
+    return;
+  }
+
+  const currentResult = searchState.results.item(searchState.resultsCursor);
+  currentResult.className = "search-result";
   searchState.resultsCursor += index;
   if (searchState.resultsCursor < 0) {
     searchState.resultsCursor = searchState.results.length - 1;
-  } else if (searchState.resultsCursor > searchState.results.length) {
+  } else if (searchState.resultsCursor === searchState.results.length) {
     searchState.resultsCursor = 0;
   }
-  scrollToCurrentSearchResult();
+
+  const newResult = searchState.results.item(searchState.resultsCursor);
+  newResult.className = "search-result-current";
+  scrollToSearchResult(newResult);
 }
 
 function autoLog() {
