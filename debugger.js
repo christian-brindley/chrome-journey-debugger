@@ -90,24 +90,12 @@ function getLogFilter() {
 }
 
 function searchHighlight(inputText) {
-  const regex = new RegExp(currentSearchQuery, "gi");
-  const matches = [...inputText.matchAll(regex)];
-  // console.log("got", matches.length, "matches");
-  if (matches.length > 0) {
-    inputText = inputText.replace(regex, (match) => `<mark>${match}</mark>`);
-  }
-
-  // const matches = document.body.innerHTML.matchAll(regex);
+  const regex = new RegExp(searchState.currentSearchQuery, "gi");
+  // const matches = [...inputText.matchAll(regex)];
   // if (matches.length > 0) {
-  //   let highlightedContent = content.replace(
-  //     regex,
-  //     (match) => `<mark>${match}</mark>`
-  //   );
-  //   const firstMatch = document.querySelector("mark");
-  //   if (firstMatch) {
-  //     firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
-  //   }
+  inputText = inputText.replace(regex, (match) => `<mark>${match}</mark>`);
   // }
+
   return inputText;
 }
 
@@ -448,13 +436,13 @@ document
   });
 
 chrome.runtime.onMessage.addListener((event) => {
-  //console.log("event", JSON.stringify(event));
+  console.log("event", JSON.stringify(event));
   if (event.type === "search") {
     if (event.payload.action === "performSearch") {
       performSearch(event.payload.queryString);
-    } else if (event.payload.action === "nextResult") {
+    } else if (event.payload.action === "nextSearchResult") {
       navigateSearch(1);
-    } else if (event.payload.action === "previousResult") {
+    } else if (event.payload.action === "previousSearchResult") {
       navigateSearch(-1);
     } else if (event.payload.action === "cancelSearch") {
       cancelSearch();
@@ -462,48 +450,44 @@ chrome.runtime.onMessage.addListener((event) => {
   }
 });
 
-let currentSearchQuery = null;
+let searchState = {
+  currentSearchQuery: null,
+  results: null,
+  resultsCursor: null,
+};
+
+function scrollToCurrentSearchResult() {
+  console.log("scrolling to item", searchState.resultsCursor);
+  if (searchState.results) {
+    searchState.results
+      .item(searchState.resultsCursor)
+      .scrollIntoView({ behavior: "instant", block: "center" });
+  }
+}
 
 function performSearch(query) {
-  currentSearchQuery = query;
+  searchState.currentSearchQuery = query;
   displayLogs();
-  const firstMatch = document.querySelector("mark");
-  if (firstMatch) {
-    firstMatch.scrollIntoView({ behavior: "instant", block: "center" });
-  }
-  // const regex = new RegExp(query, "gi");
-  // Object.keys(requestHistory).forEach((txId) => {
-  //   const logDiv = document.getElementById(`log-${txId}`);
-  //   const matches = [...logDiv.innerHTML.matchAll(regex)];
-  //   console.log("got", matches.length, "matches");
-  //   if (matches.length > 0) {
-  //     logDiv.innerHTML = logDiv.innerHTML.replace(
-  //       regex,
-  //       (match) => `<mark>${match}</mark>`
-  //     );
-  //   }
-  // });
-  // const matches = document.body.innerHTML.matchAll(regex);
-  // if (matches.length > 0) {
-  //   let highlightedContent = content.replace(
-  //     regex,
-  //     (match) => `<mark>${match}</mark>`
-  //   );
-  //   const firstMatch = document.querySelector("mark");
-  //   if (firstMatch) {
-  //     firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
-  //   }
-  // }
+  searchState.results = document.querySelectorAll("mark");
+  searchState.resultsCursor = 0;
+
+  scrollToCurrentSearchResult();
 }
 
 function cancelSearch(panel) {
   console.log("Search canceled.");
-  currentSearchQuery = null;
+  searchState.currentSearchQuery = null;
   displayLogs();
 }
 
-function navigateSearch(index, panel) {
-  console.log("Navigate");
+function navigateSearch(index) {
+  searchState.resultsCursor += index;
+  if (searchState.resultsCursor < 0) {
+    searchState.resultsCursor = searchState.results.length - 1;
+  } else if (searchState.resultsCursor > searchState.results.length) {
+    searchState.resultsCursor = 0;
+  }
+  scrollToCurrentSearchResult();
 }
 
 function autoLog() {
