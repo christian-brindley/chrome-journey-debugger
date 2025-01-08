@@ -18,6 +18,7 @@ chrome.devtools.panels.create(
   "debugger.html",
   (panel) => {
     panel.onSearch.addListener((action, queryString) => {
+      //handleSearch(action, query, panel);
       // panel.setSearchResultsCount(16);
       chrome.runtime.sendMessage({
         type: "search",

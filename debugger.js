@@ -47,7 +47,7 @@ async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
 
 let logRefreshing = false;
 
-async function refreshAllLogs() {
+async function refreshAllLogs(force) {
   if (logRefreshing) {
     console.log("Already refreshing");
     return;
@@ -58,14 +58,14 @@ async function refreshAllLogs() {
   let refreshed = false;
   for (const txId of Object.keys(requestHistory)) {
     const request = requestHistory[txId];
-    if (logsComplete(request)) {
+    if (logsComplete(request) && !force) {
       continue;
     }
     refreshed = true;
     const targetHost = request.targetHost;
     request.logs = await fetchLog(
       targetHost.hostname,
-      "am-core",
+      "am-everything",
       txId,
       { key: targetHost.logKey, secret: targetHost.logSecret },
       request.endTime
@@ -90,10 +90,13 @@ function getLogFilter() {
 }
 
 function searchHighlight(inputText) {
-  const regex = new RegExp(searchState.currentSearchQuery, "gi");
+  //const regex = new RegExp(searchState.currentSearchQuery, "gi");
   // const matches = [...inputText.matchAll(regex)];
   // if (matches.length > 0) {
-  inputText = inputText.replace(regex, (match) => `<mark>${match}</mark>`);
+  inputText = inputText.replace(
+    searchState.currentSearchQuery,
+    (match) => `<mark>${match}</mark>`
+  );
   // }
 
   return inputText;
@@ -106,9 +109,22 @@ function escapeHtml(inputText) {
     .replace(">", "&gt;");
 }
 
+function nodeCompletionLogs(logs) {
+  return logs.filter(
+    (logEntry) =>
+      logEntry.source === "am-authentication" &&
+      logEntry.payload.eventName === "AM-NODE-LOGIN-COMPLETED"
+  );
+}
+
 function displayLogs() {
   Object.keys(requestHistory).forEach((txId) => {
     const request = requestHistory[txId];
+    if (!request.logs) {
+      console.error("No logs for txid", txId);
+      return;
+    }
+
     $(`#log-${txId}`).html(
       searchHighlight(
         escapeHtml(
@@ -120,6 +136,20 @@ function displayLogs() {
     $(`#log-${txId}-title`).html(
       `Log [${request.logs.length}${continuationIndicator}]`
     );
+
+    const nodeLogs = nodeCompletionLogs(request.logs);
+    if (nodeLogs.length > 0) {
+      const nodeListDiv = document.getElementById(`node-list-${txId}`);
+      if (!nodeListDiv) {
+        console.error("Node list div not found");
+      } else {
+        nodeListDiv.innerHTML = "";
+        nodeListDiv.appendChild(nodesTable(nodeLogs));
+      }
+      $(`#node-list-${txId}-title`).html(
+        `Nodes [${nodeLogs.length}${continuationIndicator}]`
+      );
+    }
   });
 }
 
@@ -343,6 +373,17 @@ function addStage(targetHost, details) {
     );
   });
 
+  // Nodes
+
+  const nodesDiv = document.createElement("div");
+  const nodesDetailsDiv = document.createElement("div");
+  nodesDetailsDiv.className = "node-list";
+  nodesDetailsDiv.id = `node-list-${txId.full}`;
+  nodesDetailsDiv.innerText = "...";
+
+  addCollapsedContainer(nodesDiv, nodesDetailsDiv, "Nodes [...]");
+  stageContentDiv.appendChild(nodesDiv);
+
   // Logs
 
   const logsDiv = document.createElement("div");
@@ -394,6 +435,53 @@ function createHeadersDiv(headers) {
   return headersDiv;
 }
 
+function nodesTable(logEntries) {
+  let headersDiv = document.createElement("div");
+
+  const table = document.createElement("table");
+  table.className = "node-list-table";
+
+  const tbody = document.createElement("tbody");
+
+  const headerRow = document.createElement("tr");
+  headerRow.className = "node-list-table-header";
+  headerRow.innerHTML =
+    "<th>Journey</th><th>Node</th><th>Type</th><th>Outcome</th>";
+  tbody.appendChild(headerRow);
+
+  logEntries.forEach((logEntry) => {
+    if (
+      logEntry.source !== "am-authentication" ||
+      logEntry.payload.eventName !== "AM-NODE-LOGIN-COMPLETED"
+    ) {
+      return;
+    }
+    const info = logEntry.payload.entries[0].info;
+    const row = document.createElement("tr");
+
+    const treeCell = document.createElement("td");
+    treeCell.textContent = info.treeName;
+    row.appendChild(treeCell);
+
+    const nameCell = document.createElement("td");
+    nameCell.textContent = info.displayName;
+    row.appendChild(nameCell);
+
+    const typeCell = document.createElement("td");
+    typeCell.textContent = info.nodeType;
+    row.appendChild(typeCell);
+
+    const outcomeCell = document.createElement("td");
+    outcomeCell.textContent = info.nodeOutcome;
+    row.appendChild(outcomeCell);
+
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+
+  return table;
+}
+
 chrome.devtools.network.onRequestFinished.addListener(function (
   requestDetails
 ) {
@@ -414,7 +502,7 @@ chrome.devtools.network.onRequestFinished.addListener(function (
 document
   .getElementById("log-refresh-button")
   .addEventListener("click", function (event) {
-    refreshAllLogs();
+    refreshAllLogs(true);
   });
 
 document
@@ -436,10 +524,12 @@ document
   });
 
 chrome.runtime.onMessage.addListener((event) => {
-  //console.log("event", JSON.stringify(event));
+  //console.log("event", JSON.stringify(event))
+  //console.log("panel", event.panel);
   if (event.type === "search") {
     if (event.payload.action === "performSearch") {
       performSearch(event.payload.queryString);
+      event.panel.onSearch.matchesFound(16);
     } else if (event.payload.action === "nextSearchResult") {
       navigateSearch(1);
     } else if (event.payload.action === "previousSearchResult") {
