@@ -90,16 +90,18 @@ function getLogFilter() {
 }
 
 function searchHighlight(inputText) {
-  //const regex = new RegExp(searchState.currentSearchQuery, "gi");
-  // const matches = [...inputText.matchAll(regex)];
-  // if (matches.length > 0) {
-  inputText = inputText.replace(
-    searchState.currentSearchQuery,
-    (match) => `<mark>${match}</mark>`
+  if (
+    !searchState.currentSearchQuery ||
+    searchState.currentSearchQuery === ""
+  ) {
+    return inputText;
+  }
+  const escapedSearchText = searchState.currentSearchQuery.replaceAll(
+    "*",
+    "\\*"
   );
-  // }
-
-  return inputText;
+  const regex = new RegExp(escapedSearchText, "gi");
+  return inputText.replace(regex, (match) => `<mark>${match}</mark>`);
 }
 
 function escapeHtml(inputText) {
@@ -529,7 +531,6 @@ chrome.runtime.onMessage.addListener((event) => {
   if (event.type === "search") {
     if (event.payload.action === "performSearch") {
       performSearch(event.payload.queryString);
-      event.panel.onSearch.matchesFound(16);
     } else if (event.payload.action === "nextSearchResult") {
       navigateSearch(1);
     } else if (event.payload.action === "previousSearchResult") {
