@@ -15,7 +15,7 @@ async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
   while (true) {
     const today = new Date().toISOString().slice(0, 10);
     let url = `https://${hostname}/monitoring/logs?_prettyPrint=false&source=${logStream}&transactionId=${txId}&beginTime=${today}T00:00:00Z&endTime=${endTime}`;
-    //console.log("Calling Log API on", url);
+
     if (pagedResultsCookie) {
       url += `&_pagedResultsCookie=${pagedResultsCookie}`;
     }
@@ -34,7 +34,6 @@ async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
     }
 
     const data = await response.json();
-    //console.log("got data", data);
     logEntries = logEntries.concat(data.result);
     pagedResultsCookie = data.pagedResultsCookie;
     if (!pagedResultsCookie) {
@@ -134,10 +133,14 @@ function displayLogs() {
         )
       )
     );
+
     const continuationIndicator = logsComplete(request) ? "" : "...";
-    $(`#log-${txId}-title`).html(
-      `Log [${request.logs.length}${continuationIndicator}]`
-    );
+
+    if (request.logs.length > 0) {
+      $(`#log-div-${txId}-title`).html(
+        `Logs <b>[${request.logs.length}${continuationIndicator}]</b>`
+      );
+    }
 
     const nodeLogs = nodeCompletionLogs(request.logs);
     if (nodeLogs.length > 0) {
@@ -148,8 +151,8 @@ function displayLogs() {
         nodeListDiv.innerHTML = "";
         nodeListDiv.appendChild(nodesTable(nodeLogs));
       }
-      $(`#node-list-${txId}-title`).html(
-        `Nodes [${nodeLogs.length}${continuationIndicator}]`
+      $(`#node-div-${txId}-title`).html(
+        `Nodes <b>[${nodeLogs.length}${continuationIndicator}]</b>`
       );
     }
   });
@@ -199,7 +202,6 @@ function logsComplete(request) {
   const requestEndTime = new Date(request.endTime);
 
   const timeGap = requestEndTime - lastLogTime;
-  //console.log("gap", timeGap);
   return timeGap < LOG_COMPLETE_WINDOW_MS;
 }
 
@@ -305,31 +307,25 @@ function addStage(targetHost, details) {
   const stageContentDiv = document.createElement("div");
   stageContentDiv.className = "stage-content";
 
-  addCollapsedContainer(stageDiv, stageContentDiv, txId.request);
+  addCollapsedContainer(
+    stageDiv,
+    stageContentDiv,
+    `Step: ${txId.request}`,
+    getLogConfig().expand
+  );
 
   // Request details
 
   const requestDiv = document.createElement("div");
   const requestDetailsDiv = document.createElement("div");
-  requestDetailsDiv.className = "request-details";
+  requestDetailsDiv.className = "stage-details";
 
-  // Request headers
-
-  const requestHeadersHeaderDiv = document.createElement("div");
-  requestHeadersHeaderDiv.innerHTML = "Request headers";
-  requestHeadersHeaderDiv.className = "request-section-title";
-  requestDetailsDiv.appendChild(requestHeadersHeaderDiv);
   requestDetailsDiv.appendChild(createHeadersDiv(details.request.headers));
 
   // Request body
 
-  const requestBodyHeaderDiv = document.createElement("div");
-  requestBodyHeaderDiv.innerHTML = "Request payload";
-  requestBodyHeaderDiv.className = "request-section-title";
-  requestDetailsDiv.appendChild(requestBodyHeaderDiv);
-
   const requestBodyDiv = document.createElement("div");
-  requestBodyDiv.className = "json-container";
+  requestBodyDiv.className = "http-body";
   requestBodyDiv.textContent = JSON.stringify(requestPayload, null, 2);
   requestDetailsDiv.appendChild(requestBodyDiv);
 
@@ -341,26 +337,17 @@ function addStage(targetHost, details) {
 
   const responseDiv = document.createElement("div");
   const responseDetailsDiv = document.createElement("div");
-  responseDetailsDiv.className = "request-details";
+  responseDetailsDiv.className = "stage-details";
 
   // Response headers
 
-  const responseHeadersHeaderDiv = document.createElement("div");
-  responseHeadersHeaderDiv.innerHTML = "Response headers";
-  responseHeadersHeaderDiv.className = "request-section-title";
-  responseDetailsDiv.appendChild(responseHeadersHeaderDiv);
   responseDetailsDiv.appendChild(createHeadersDiv(details.response.headers));
 
   // Response body
 
-  const responseBodyHeaderDiv = document.createElement("div");
-  responseBodyHeaderDiv.innerHTML = "Response payload";
-  responseBodyHeaderDiv.className = "request-section-title";
-  responseDetailsDiv.appendChild(responseBodyHeaderDiv);
-
   const responseBodyDivId = `response-body-${txId.full}`;
   const responseBodyDiv = document.createElement("div");
-  responseBodyDiv.className = "json-container";
+  responseBodyDiv.className = "http-body";
   responseBodyDiv.id = responseBodyDivId;
 
   responseDetailsDiv.appendChild(responseBodyDiv);
@@ -378,32 +365,37 @@ function addStage(targetHost, details) {
   // Nodes
 
   const nodesDiv = document.createElement("div");
-  const nodesDetailsDiv = document.createElement("div");
-  nodesDetailsDiv.className = "node-list";
-  nodesDetailsDiv.id = `node-list-${txId.full}`;
-  nodesDetailsDiv.innerText = "...";
+  const nodeEntriesDiv = document.createElement("div");
+  nodeEntriesDiv.id = `node-list-${txId.full}`;
+  nodeEntriesDiv.className = "node-list";
+  nodeEntriesDiv.innerText = "...";
 
-  addCollapsedContainer(nodesDiv, nodesDetailsDiv, "Nodes [...]");
+  const nodeDetailsDiv = document.createElement("div");
+  nodeDetailsDiv.id = `node-div-${txId.full}`;
+  nodeDetailsDiv.className = "stage-details";
+  nodeDetailsDiv.appendChild(nodeEntriesDiv);
+
+  addCollapsedContainer(nodesDiv, nodeDetailsDiv, "Nodes");
   stageContentDiv.appendChild(nodesDiv);
 
   // Logs
 
   const logsDiv = document.createElement("div");
-  logsDiv.className = "log-container";
-
   const logEntriesDiv = document.createElement("div");
   logEntriesDiv.id = `log-${txId.full}`;
-  logEntriesDiv.className = "json-container";
+  logEntriesDiv.className = "log-data";
   logEntriesDiv.innerText = "...";
 
-  addCollapsedContainer(
-    logsDiv,
-    logEntriesDiv,
-    "Log [...]",
-    getLogConfig().expand
-  );
+  const logDetailsDiv = document.createElement("div");
+  logDetailsDiv.id = `log-div-${txId.full}`;
+  logDetailsDiv.className = "stage-details";
+
+  logDetailsDiv.appendChild(logEntriesDiv);
+
+  addCollapsedContainer(logsDiv, logDetailsDiv, "Logs", getLogConfig().expand);
+
+  stageContentDiv.appendChild(logsDiv);
   journeyDiv.appendChild(stageDiv);
-  journeyDiv.appendChild(logsDiv);
 }
 
 const journeyDiv = document.getElementById("journeyRequests");
@@ -419,10 +411,12 @@ function createHeadersDiv(headers) {
     const row = document.createElement("tr");
 
     const nameCell = document.createElement("td");
+    nameCell.className = "http-header-name";
     nameCell.textContent = header.name;
     row.appendChild(nameCell);
 
     const valueCell = document.createElement("td");
+    valueCell.className = "http-header-value";
     valueCell.textContent = header.value;
     row.appendChild(valueCell);
 
@@ -445,11 +439,11 @@ function nodesTable(logEntries) {
 
   const tbody = document.createElement("tbody");
 
-  const headerRow = document.createElement("tr");
-  headerRow.className = "node-list-table-header";
-  headerRow.innerHTML =
-    "<th>Journey</th><th>Node</th><th>Type</th><th>Outcome</th>";
-  tbody.appendChild(headerRow);
+  // const headerRow = document.createElement("tr");
+  // headerRow.className = "node-list-table-header";
+  // headerRow.innerHTML =
+  //   "<th>Journey</th><th>Node</th><th>Type</th><th>Outcome</th>";
+  // tbody.appendChild(headerRow);
 
   logEntries.forEach((logEntry) => {
     if (
@@ -475,6 +469,7 @@ function nodesTable(logEntries) {
 
     const outcomeCell = document.createElement("td");
     outcomeCell.textContent = info.nodeOutcome;
+    outcomeCell.className = "filler-column";
     row.appendChild(outcomeCell);
 
     tbody.appendChild(row);
@@ -495,8 +490,6 @@ chrome.devtools.network.onRequestFinished.addListener(function (
   if (!targetHost) {
     return;
   }
-
-  //console.log("adding stage", JSON.stringify(targetHost));
 
   addStage(targetHost, requestDetails);
 });
@@ -526,8 +519,6 @@ document
   });
 
 chrome.runtime.onMessage.addListener((event) => {
-  //console.log("event", JSON.stringify(event))
-  //console.log("panel", event.panel);
   if (event.type === "search") {
     if (event.payload.action === "performSearch") {
       performSearch(event.payload.queryString);
@@ -548,7 +539,6 @@ let searchState = {
 };
 
 function scrollToSearchResult(result) {
-  //console.log("scrolling to item", searchState.resultsCursor);
   result.scrollIntoView({ behavior: "instant", block: "center" });
 }
 
