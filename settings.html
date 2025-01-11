@@ -10,6 +10,9 @@
     <script src="lib/bootstrap-4.3.1.min.js"></script>
     <script src="common/config.js"></script>
     <style>
+      html {
+        font-size: 14px;
+      }
       body {
         margin-top: 20px;
         background: whitesmoke;
@@ -51,7 +54,6 @@
       }
       .target-host {
         padding: 10px 20px 10px 20px;
-        font-size: 12pt;
       }
       .field-error {
         color: red;
@@ -104,52 +106,34 @@
             <div class="form-row">
               <label>General</label>
             </div>
-            <!--
-
-              <div>
-                <input type="checkbox" id="logs-fetch-automatically" />
-                <label for="logs-fetch-automatically"
-                  >Fetch logs automatically</label
-                >
-              </div>
-              -->
             <div class="form-row">
-              <div>
-                <input type="checkbox" id="logs-expand" />
-                <label for="logs-expand">Expand logs</label>
-              </div>
-              <div>
-                <input type="checkbox" id="logs-fetch-automatically" />
-                <label for="logs-fetch-automatically">Refresh every</label>
-                <select id="logs-refresh-interval">
-                  <option value="5">5 seconds</option>
-                  <option value="10">10 seconds</option>
-                  <option value="15">15 seconds</option>
-                  <option value="20">20 seconds</option>
-                </select>
+              <div class="form-group col-md-6">
+                <div>
+                  <input type="checkbox" id="logs-expand" />
+                  <label for="logs-expand">Expand logs</label>
+                </div>
+                <div>
+                  <input type="checkbox" id="logs-fetch-automatically" />
+                  <label for="logs-fetch-automatically">Refresh every</label>
+                  <select id="logs-refresh-interval">
+                    <option value="5">5 seconds</option>
+                    <option value="10">10 seconds</option>
+                    <option value="15">15 seconds</option>
+                    <option value="20">20 seconds</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div class="form-row">&nbsp;</div>
             <div class="form-row"><label>Streams</label></div>
             <div class="form-row">
               <div class="form-group col-md-6">
                 <div>
-                  <input type="checkbox" id="logs-streams-am-core" />
-                  <label for="logs-streams-am-core">am-core</label>
+                  <input type="checkbox" id="logs-streams-am" />
+                  <label for="logs-streams-am">am</label>
                 </div>
                 <div>
-                  <input type="checkbox" id="logs-streams-am-access" />
-                  <label for="logs-streams-am-access">am-access</label>
-                </div>
-                <div>
-                  <input type="checkbox" id="logs-streams-am-authentication" />
-                  <label for="logs-streams-am-authentication"
-                    >am-authentication</label
-                  >
-                </div>
-                <div>
-                  <input type="checkbox" id="logs-streams-idm-core" />
-                  <label for="logs-streams-idm-core">idm-core</label>
+                  <input type="checkbox" id="logs-streams-idm" />
+                  <label for="logs-streams-idm">idm</label>
                 </div>
               </div>
             </div>

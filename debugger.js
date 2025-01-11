@@ -9,12 +9,12 @@ function setLogStatus(status) {
   $("#log-status").html(status);
 }
 
-async function fetchLog(hostname, logStream, txId, logApiCredentials, endTime) {
+async function fetchLog(hostname, source, txId, logApiCredentials, endTime) {
   let pagedResultsCookie = null;
   let logEntries = [];
   while (true) {
     const today = new Date().toISOString().slice(0, 10);
-    let url = `https://${hostname}/monitoring/logs?_prettyPrint=false&source=${logStream}&transactionId=${txId}&beginTime=${today}T00:00:00Z&endTime=${endTime}`;
+    let url = `https://${hostname}/monitoring/logs?_prettyPrint=false&source=${source}&transactionId=${txId}&beginTime=${today}T00:00:00Z&endTime=${endTime}`;
 
     if (pagedResultsCookie) {
       url += `&_pagedResultsCookie=${pagedResultsCookie}`;
@@ -54,26 +54,31 @@ async function refreshAllLogs(force) {
 
   logRefreshing = true;
   setLogStatus("Fetching logs");
-  let refreshed = false;
-  for (const txId of Object.keys(requestHistory)) {
-    const request = requestHistory[txId];
-    if (logsComplete(request) && !force) {
-      continue;
+  try {
+    let refreshed = false;
+    for (const txId of Object.keys(requestHistory)) {
+      const request = requestHistory[txId];
+      if (logsComplete(request) && !force) {
+        continue;
+      }
+      refreshed = true;
+      const targetHost = request.targetHost;
+      request.logs = await fetchLog(
+        targetHost.hostname,
+        "am-everything",
+        txId,
+        { key: targetHost.logKey, secret: targetHost.logSecret },
+        request.endTime
+      );
     }
-    refreshed = true;
-    const targetHost = request.targetHost;
-    request.logs = await fetchLog(
-      targetHost.hostname,
-      "am-everything",
-      txId,
-      { key: targetHost.logKey, secret: targetHost.logSecret },
-      request.endTime
-    );
+
+    if (refreshed) {
+      displayLogs();
+    }
+  } catch (e) {
+    console.error("Exception while refresh logs:", e);
   }
   setLogStatus();
-  if (refreshed) {
-    displayLogs();
-  }
   logRefreshing = false;
 }
 
@@ -81,6 +86,7 @@ function getLogFilter() {
   let filter = {};
 
   filter.level = $("#filter-log-level").val();
+  filter.source = $("#filter-log-source").val();
   const filterText = $("#filter-log-text").val();
   if (filterText && filterText.length > 0) {
     filter.text = filterText;
@@ -162,9 +168,10 @@ function filterLogs(logs, filter) {
   if (!filter) {
     return logs;
   }
+
   let filteredLogs = logs;
   let levels = null;
-  if (filter.level) {
+  if (filter.level && filter.level !== "") {
     switch (filter.level) {
       case "ERROR":
         levels = ["ERROR"];
@@ -183,6 +190,12 @@ function filterLogs(logs, filter) {
         levels.includes(logEntry.payload.level)
       );
     }
+  }
+
+  if (filter.source && filter.source !== "") {
+    filteredLogs = filteredLogs.filter(
+      (logEntry) => logEntry.source === filter.source
+    );
   }
 
   if (filter.text) {
@@ -439,12 +452,6 @@ function nodesTable(logEntries) {
 
   const tbody = document.createElement("tbody");
 
-  // const headerRow = document.createElement("tr");
-  // headerRow.className = "node-list-table-header";
-  // headerRow.innerHTML =
-  //   "<th>Journey</th><th>Node</th><th>Type</th><th>Outcome</th>";
-  // tbody.appendChild(headerRow);
-
   logEntries.forEach((logEntry) => {
     if (
       logEntry.source !== "am-authentication" ||
@@ -452,8 +459,24 @@ function nodesTable(logEntries) {
     ) {
       return;
     }
+
+    const timestampDate = new Date(logEntry.timestamp);
+    const timestamp = `${String(timestampDate.getHours()).padStart(
+      2,
+      "0"
+    )}:${String(timestampDate.getMinutes()).padStart(2, "0")}:${String(
+      timestampDate.getSeconds()
+    ).padStart(2, "0")}.${String(timestampDate.getMilliseconds()).padStart(
+      3,
+      "0"
+    )}`;
+
     const info = logEntry.payload.entries[0].info;
     const row = document.createElement("tr");
+
+    const timestampCell = document.createElement("td");
+    timestampCell.textContent = timestamp;
+    row.appendChild(timestampCell);
 
     const treeCell = document.createElement("td");
     treeCell.textContent = info.treeName;
@@ -513,8 +536,14 @@ document
   });
 
 document
-  .getElementById("filter-log-text")
+  .getElementById("filter-log-source")
   .addEventListener("change", function (event) {
+    displayLogs();
+  });
+
+document
+  .getElementById("filter-log-text")
+  .addEventListener("input", function (event) {
     displayLogs();
   });
 

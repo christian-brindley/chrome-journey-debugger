@@ -56,6 +56,7 @@
       word-break: break-all;
       width: 100%;
       background-color: white;
+      margin-bottom: 5px;
     }
     .am-authentication {
       color: green;
@@ -154,6 +155,8 @@
       font-weight: normal;
     }
     .stage-details {
+      margin-top: 5px;
+      margin-bottom: 5px;
       margin-left: 20px;
     }
     .request-section-title {
@@ -214,10 +217,19 @@
       <span class="debugger-header-divider"></span>
       Level
       <select id="filter-log-level" class="debugger-header-select">
-        <option>ALL</option>
+        <option value="">ALL</option>
         <option>INFO</option>
         <option>WARN</option>
         <option>ERROR</option>
+      </select>
+      <span class="debugger-header-divider"></span>
+      Source
+      <select id="filter-log-source" class="debugger-header-select">
+        <option value="">ALL</option>
+        <option>am-core</option>
+        <option>am-authentication</option>
+        <option>am-access</option>
+        <option>idm-core</option>
       </select>
       <span class="debugger-header-divider"></span>
       Filter <input class="log-filter-text" id="filter-log-text" />

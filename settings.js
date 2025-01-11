@@ -63,6 +63,11 @@ $(document).ready(function () {
       var logKey = $("#new-target-log-key").val();
       var logSecret = $("#new-target-log-secret").val();
 
+      if (!hostname || hostname === "") {
+        $("#add-target-host-error").html("Hostname required");
+        return;
+      }
+
       if (getTargetHostByHostname(hostname)) {
         $("#add-target-host-error").html("This hostname already exists.");
         return;
@@ -92,6 +97,11 @@ $(document).ready(function () {
       var hostname = $("#edit-target-hostname").val();
       var logKey = $("#edit-target-log-key").val();
       var logSecret = $("#edit-target-log-secret").val();
+
+      if (!hostname || hostname === "") {
+        $("#add-target-host-error").html("Hostname required");
+        return;
+      }
 
       const previousHostname = getTargetHostById(id).hostname;
       if (hostname != previousHostname && getTargetHostByHostname(hostname)) {
