@@ -211,11 +211,17 @@ function logsComplete(request) {
     return false;
   }
 
-  const lastLogTime = new Date(request.logs[request.logs.length - 1].timestamp);
-  const requestEndTime = new Date(request.endTime);
+  // const lastLogTime = new Date(request.logs[request.logs.length - 1].timestamp);
+  // const requestEndTime = new Date(request.endTime);
 
-  const timeGap = requestEndTime - lastLogTime;
-  return timeGap < LOG_COMPLETE_WINDOW_MS;
+  // const timeGap = requestEndTime - lastLogTime;
+  // return timeGap < LOG_COMPLETE_WINDOW_MS;
+  return (
+    request.logs.find((logEntry) => {
+      logEntry.source === "am-access" &&
+        logEntry.eventName === "AM-ACCESS-OUTCOME";
+    }) !== null
+  );
 }
 
 function getTxId(request) {
@@ -320,10 +326,15 @@ function addStage(targetHost, details) {
   const stageContentDiv = document.createElement("div");
   stageContentDiv.className = "stage-content";
 
+  let title = txId.request;
+  if (details.response.status != 200) {
+    title = `<span style="color: red">${title}</span>`;
+  }
+
   addCollapsedContainer(
     stageDiv,
     stageContentDiv,
-    `Step: ${txId.request}`,
+    title,
     getLogConfig().expand
   );
 
@@ -365,7 +376,11 @@ function addStage(targetHost, details) {
 
   responseDetailsDiv.appendChild(responseBodyDiv);
 
-  addCollapsedContainer(responseDiv, responseDetailsDiv, "Response");
+  addCollapsedContainer(
+    responseDiv,
+    responseDetailsDiv,
+    `Response (${details.response.status})`
+  );
 
   stageContentDiv.appendChild(responseDiv);
 
