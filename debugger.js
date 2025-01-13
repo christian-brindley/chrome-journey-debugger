@@ -9,6 +9,26 @@ function setLogStatus(status) {
   $("#log-status").html(status);
 }
 
+function loadSessionInfo(authenticateUrl, sessionInfoDiv) {
+  let sessionUrl = authenticateUrl;
+  sessionUrl.search = "_action=getSessionInfo";
+  sessionUrl.pathname = sessionUrl.pathname.replace(
+    "/authenticate",
+    "/sessions"
+  );
+  fetch(sessionUrl.href, {
+    method: "POST",
+    headers: {
+      "Accept-API-Version": "resource=4.0",
+      "Content-Type": "application/json",
+    },
+  }).then((response) => {
+    response.json().then((responseObject) => {
+      sessionInfoDiv.textContent = JSON.stringify(responseObject, null, 2);
+    });
+  });
+}
+
 async function fetchLog(hostname, source, txId, logApiCredentials, endTime) {
   let pagedResultsCookie = null;
   let logEntries = [];
@@ -292,9 +312,11 @@ function addCollapsedContainer(parentContainer, container, title, expand) {
   }
   parentContainer.appendChild(titleDiv);
   parentContainer.appendChild(container);
+
+  return titleText;
 }
 
-function addStage(targetHost, details) {
+function addStage(targetHost, targetUrl, details) {
   const journeyDiv = document.getElementById("journeyRequests");
 
   // Request payload
@@ -331,7 +353,7 @@ function addStage(targetHost, details) {
     title = `<span style="color: red">${title}</span>`;
   }
 
-  addCollapsedContainer(
+  const requestTitleText = addCollapsedContainer(
     stageDiv,
     stageContentDiv,
     title,
@@ -384,12 +406,6 @@ function addStage(targetHost, details) {
 
   stageContentDiv.appendChild(responseDiv);
 
-  details.getContent((content) => {
-    $(`#${responseBodyDivId}`).text(
-      JSON.stringify(JSON.parse(content), null, 2)
-    );
-  });
-
   // Nodes
 
   const nodesDiv = document.createElement("div");
@@ -423,6 +439,31 @@ function addStage(targetHost, details) {
   addCollapsedContainer(logsDiv, logDetailsDiv, "Logs", getLogConfig().expand);
 
   stageContentDiv.appendChild(logsDiv);
+
+  details.getContent((content) => {
+    const bodyObject = JSON.parse(content);
+    $(`#${responseBodyDivId}`).text(JSON.stringify(bodyObject, null, 2));
+    // TODO: handle cookie only session
+    if (bodyObject.tokenId) {
+      requestTitleText.innerHTML = `<span style="color: green">${requestTitleText.innerHTML}</span>`;
+
+      const sessionDiv = document.createElement("div");
+      const sessionInfoDiv = document.createElement("div");
+      sessionInfoDiv.id = `session-info-${txId.full}`;
+      sessionInfoDiv.className = "session-properties";
+      sessionInfoDiv.innerText = "...";
+
+      const sessionDetailsDiv = document.createElement("div");
+      sessionDetailsDiv.id = `session-div-${txId.full}`;
+      sessionDetailsDiv.className = "session-details";
+      sessionDetailsDiv.appendChild(sessionInfoDiv);
+
+      addCollapsedContainer(sessionDiv, sessionDetailsDiv, "Session");
+      stageContentDiv.appendChild(sessionDiv);
+      loadSessionInfo(targetUrl, sessionInfoDiv);
+    }
+  });
+
   journeyDiv.appendChild(stageDiv);
 }
 
@@ -521,6 +562,7 @@ chrome.devtools.network.onRequestFinished.addListener(function (
   requestDetails
 ) {
   const targetUrl = new URL(requestDetails.request.url);
+
   if (!targetUrl.pathname.endsWith("/authenticate")) {
     return;
   }
@@ -528,8 +570,7 @@ chrome.devtools.network.onRequestFinished.addListener(function (
   if (!targetHost) {
     return;
   }
-
-  addStage(targetHost, requestDetails);
+  addStage(targetHost, targetUrl, requestDetails);
 });
 
 document
