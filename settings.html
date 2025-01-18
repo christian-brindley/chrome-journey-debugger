@@ -124,16 +124,16 @@
                 </div>
               </div>
             </div>
-            <div class="form-row"><label>Streams</label></div>
+            <div class="form-row"><label>Sources</label></div>
             <div class="form-row">
               <div class="form-group col-md-6">
                 <div>
-                  <input type="checkbox" id="logs-streams-am" />
-                  <label for="logs-streams-am">am</label>
+                  <input type="checkbox" id="logs-source-am-everything" />
+                  <label for="logs-source-am-everything">am-everything</label>
                 </div>
                 <div>
-                  <input type="checkbox" id="logs-streams-idm" />
-                  <label for="logs-streams-idm">idm</label>
+                  <input type="checkbox" id="logs-source-idm-everything" />
+                  <label for="logs-source-idm-everything">idm-everything</label>
                 </div>
               </div>
             </div>
@@ -156,11 +156,19 @@
             </div>
             <div class="form-group">
               <label for="new-target-log-key">Log API key</label>
-              <input class="form-control" id="new-target-log-key" />
+              <input
+                type="password"
+                class="form-control"
+                id="new-target-log-key"
+              />
             </div>
             <div class="form-group">
               <label for="new-target-log-secret">Log API secret</label>
-              <input class="form-control" id="new-target-log-secret" />
+              <input
+                type="password"
+                class="form-control"
+                id="new-target-log-secret"
+              />
             </div>
             <button
               type="submit"
@@ -194,11 +202,19 @@
             </div>
             <div class="form-group">
               <label for="edit-target-log-key">Log API key</label>
-              <input class="form-control" id="edit-target-log-key" />
+              <input
+                type="password"
+                class="form-control"
+                id="edit-target-log-key"
+              />
             </div>
             <div class="form-group">
               <label for="edit-target-log-secret">Log API secret</label>
-              <input class="form-control" id="edit-target-log-secret" />
+              <input
+                type="password"
+                class="form-control"
+                id="edit-target-log-secret"
+              />
             </div>
             <button value="save" type="submit" class="btn btn-primary">
               Save</button

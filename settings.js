@@ -5,7 +5,7 @@ const VIEWS = {
   DELETE_TARGET_HOST: "delete-target-host",
 };
 
-const LOG_STREAMS = ["am-core", "am-authentication", "am-access", "idm-core"];
+const LOG_SOURCES = ["am-everything", "idm-everything"];
 
 function attachListeners() {
   $(".dropdown-menu .dropdown-item").on("click", function (e) {
@@ -146,15 +146,17 @@ $(document).ready(function () {
   $("#form-save-log-settings").submit(function (event) {
     event.preventDefault();
 
-    let streams = {};
-    LOG_STREAMS.forEach((stream) => {
-      streams[stream] = $(`#logs-streams-${stream}`).is(":checked");
+    let sources = [];
+    LOG_SOURCES.forEach((source) => {
+      if ($(`#logs-source-${source}`).is(":checked")) {
+        sources.push(source);
+      }
     });
     const logConfig = {
       automatic: $("#logs-fetch-automatically").is(":checked"),
       refreshInterval: parseInt($("#logs-refresh-interval").val()),
       expand: $("#logs-expand").is(":checked"),
-      streams: streams,
+      sources: sources,
     };
     console.log("log config now", JSON.stringify(logConfig));
     saveLogConfig(logConfig);
@@ -285,8 +287,11 @@ function loadLogConfig() {
   const logConfig = getLogConfig();
   $("#logs-fetch-automatically").prop("checked", logConfig.automatic);
   $("#logs-expand").prop("checked", logConfig.expand);
-  LOG_STREAMS.forEach((stream) => {
-    $(`#logs-streams-${stream}`).prop("checked", logConfig.streams[stream]);
+  LOG_SOURCES.forEach((source) => {
+    $(`#logs-source-${source}`).prop(
+      "checked",
+      logConfig.sources.includes(source)
+    );
   });
   $("#logs-refresh-interval").val(logConfig.refreshInterval);
 }

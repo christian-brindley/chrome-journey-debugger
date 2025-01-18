@@ -68,7 +68,7 @@ let logRefreshing = false;
 
 async function refreshAllLogs(force) {
   if (logRefreshing) {
-    console.log("Already refreshing");
+    //console.log("Already refreshing");
     return;
   }
 
@@ -85,7 +85,7 @@ async function refreshAllLogs(force) {
       const targetHost = request.targetHost;
       request.logs = await fetchLog(
         targetHost.hostname,
-        "am-everything",
+        getLogConfig().sources.join(","),
         txId,
         { key: targetHost.logKey, secret: targetHost.logSecret },
         request.endTime
@@ -148,7 +148,7 @@ function displayLogs() {
   Object.keys(requestHistory).forEach((txId) => {
     const request = requestHistory[txId];
     if (!request.logs) {
-      console.error("No logs for txid", txId);
+      //console.error("No logs for txid", txId);
       return;
     }
 
@@ -627,21 +627,39 @@ function scrollToSearchResult(result) {
   result.scrollIntoView({ behavior: "instant", block: "center" });
 }
 
+function nextVisibleResult() {
+  for (
+    let i = 0;
+    i < searchState.results.length;
+    i++, searchState.resultsCursor++
+  ) {
+    if (searchState.resultsCursor > searchState.results.length) {
+      searchState.resultsCursor = 0;
+    }
+    const result = searchState.results.item(searchState.resultsCursor);
+    if ($(result).is(":visible")) {
+      return result;
+    }
+  }
+  return null;
+}
+
 function performSearch(query) {
   searchState.currentSearchQuery = query;
   displayLogs();
   searchState.results = document.querySelectorAll("mark");
   searchState.resultsCursor = 0;
+  //$(elem).is(':visible')
 
-  if (searchState.results.length > 0) {
-    const firstResult = searchState.results.item(0);
+  const firstResult = nextVisibleResult();
+  if (firstResult) {
     firstResult.className = "search-result-current";
     scrollToSearchResult(firstResult);
   }
 }
 
 function cancelSearch(panel) {
-  console.log("Search canceled.");
+  //console.log("Search canceled.");
   searchState.currentSearchQuery = null;
   displayLogs();
 }
@@ -653,6 +671,7 @@ function navigateSearch(index) {
 
   const currentResult = searchState.results.item(searchState.resultsCursor);
   currentResult.className = "search-result";
+
   searchState.resultsCursor += index;
   if (searchState.resultsCursor < 0) {
     searchState.resultsCursor = searchState.results.length - 1;
@@ -660,9 +679,13 @@ function navigateSearch(index) {
     searchState.resultsCursor = 0;
   }
 
-  const newResult = searchState.results.item(searchState.resultsCursor);
-  newResult.className = "search-result-current";
-  scrollToSearchResult(newResult);
+  // const newResult = searchState.results.item(searchState.resultsCursor);
+
+  const newResult = nextVisibleResult();
+  if (newResult) {
+    newResult.className = "search-result-current";
+    scrollToSearchResult(newResult);
+  }
 }
 
 function autoLog() {

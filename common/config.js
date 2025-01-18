@@ -16,7 +16,7 @@ function getLogConfig() {
       automatic: true,
       refreshInterval: 10,
       expand: false,
-      streams: { "am-core": true },
+      sources: ["am-everything", "idm-everything"],
     };
   }
   return logConfig;
