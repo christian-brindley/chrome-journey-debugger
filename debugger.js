@@ -115,16 +115,11 @@ function getLogFilter() {
 }
 
 function searchHighlight(inputText) {
-  if (
-    !searchState.currentSearchQuery ||
-    searchState.currentSearchQuery === ""
-  ) {
+  const query = getCurrentSearchQuery();
+  if (!query || query === "") {
     return inputText;
   }
-  const escapedSearchText = searchState.currentSearchQuery.replaceAll(
-    "*",
-    "\\*"
-  );
+  const escapedSearchText = query.replaceAll("*", "\\*");
   const regex = new RegExp(escapedSearchText, "gi");
   return inputText.replace(regex, (match) => `<mark>${match}</mark>`);
 }
@@ -603,10 +598,17 @@ document
     displayLogs();
   });
 
+document
+  .getElementById("search-text")
+  .addEventListener("input", function (event) {
+    performSearch();
+  });
+
 chrome.runtime.onMessage.addListener((event) => {
   if (event.type === "search") {
     if (event.payload.action === "performSearch") {
-      performSearch(event.payload.queryString);
+      $("#search-text").val(event.payload.queryString);
+      performSearch();
     } else if (event.payload.action === "nextSearchResult") {
       navigateSearch(1);
     } else if (event.payload.action === "previousSearchResult") {
@@ -618,7 +620,6 @@ chrome.runtime.onMessage.addListener((event) => {
 });
 
 let searchState = {
-  currentSearchQuery: null,
   results: null,
   resultsCursor: null,
 };
@@ -644,23 +645,33 @@ function nextVisibleResult() {
   return null;
 }
 
-function performSearch(query) {
-  searchState.currentSearchQuery = query;
+function getCurrentSearchQuery() {
+  return $("#search-text").val();
+}
+
+function switchSearchButtons(on) {
+  ["previous", "next"].forEach((direction) => {
+    const button = document.getElementById(`search-${direction}-button`);
+    button.disabled = !on;
+    button.className = on ? "button-enabled" : "button-disabled";
+  });
+}
+
+function performSearch() {
+  const query = getCurrentSearchQuery();
   displayLogs();
   searchState.results = document.querySelectorAll("mark");
   searchState.resultsCursor = 0;
-  //$(elem).is(':visible')
 
   const firstResult = nextVisibleResult();
   if (firstResult) {
+    switchSearchButtons(true);
     firstResult.className = "search-result-current";
     scrollToSearchResult(firstResult);
   }
 }
 
 function cancelSearch(panel) {
-  //console.log("Search canceled.");
-  searchState.currentSearchQuery = null;
   displayLogs();
 }
 
