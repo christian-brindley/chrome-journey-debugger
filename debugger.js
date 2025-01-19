@@ -679,7 +679,9 @@ function showResultsCount() {
     $("#search-location").text(`${searchState.resultsCursor + 1} of ${count}`);
   } else {
     switchSearchButtons(false);
-    $("#search-location").text("");
+    $("#search-location").text(
+      getCurrentSearchQuery().length > 0 ? "No results" : ""
+    );
   }
 }
 
