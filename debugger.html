@@ -218,11 +218,13 @@
       height: 20px;
     }
     .search-location {
-      width: 50px;
+      width: fit-content;
       display: inline-block;
+      margin-left: 5px;
     }
     .button-disabled {
       margin-left: 5px;
+      margin-right: 5px;
       opacity: 0.5;
     }
     .button-enabled {
@@ -237,6 +239,13 @@
     }
     .search-result-current {
       background-color: orange;
+    }
+    .search-panel {
+      display: inline;
+      margin-right: 20px;
+    }
+    .search-controls {
+      display: inline-block;
     }
   </style>
   <body>
@@ -275,24 +284,27 @@
       </select>
       <span class="debugger-header-divider"></span>
       Filter <input class="log-filter-text" id="filter-log-text" />
-      <div style="float: right">
+      <span class="debugger-header-divider"></span>
+      <div class="search-panel">
         Search <input class="search-text" id="search-text" />
-        <input
-          type="image"
-          id="search-previous-button"
-          src="images/uparrow-12.png"
-          title="Previous result"
-          class="button-disabled"
-          disabled
-        />
-        <input
-          type="image"
-          id="search-next-button"
-          src="images/downarrow-12.png"
-          title="Next result"
-          class="button-disabled"
-          disabled
-        />
+        <div class="search-controls">
+          <input
+            type="image"
+            id="search-previous-button"
+            src="images/uparrow-12.png"
+            title="Previous result"
+            class="button-disabled"
+            disabled
+          />
+          <input
+            type="image"
+            id="search-next-button"
+            src="images/downarrow-12.png"
+            title="Next result"
+            class="button-disabled"
+            disabled
+          />
+        </div>
         <div id="search-location" class="search-location"></div>
       </div>
     </div>

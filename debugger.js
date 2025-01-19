@@ -297,6 +297,7 @@ function addCollapsedContainer(parentContainer, container, title, expand) {
     const isHidden = container.style.display === "none";
     container.style.display = isHidden ? "block" : "none";
     expanderSpan.style.transform = isHidden ? "rotate(90deg)" : "rotate(0deg)";
+    performSearch(false);
   });
 
   if (expand) {
@@ -604,6 +605,18 @@ document
     performSearch();
   });
 
+document
+  .getElementById("search-previous-button")
+  .addEventListener("click", function (event) {
+    navigateSearch(-1);
+  });
+
+document
+  .getElementById("search-next-button")
+  .addEventListener("click", function (event) {
+    navigateSearch(1);
+  });
+
 chrome.runtime.onMessage.addListener((event) => {
   if (event.type === "search") {
     if (event.payload.action === "performSearch") {
@@ -628,14 +641,16 @@ function scrollToSearchResult(result) {
   result.scrollIntoView({ behavior: "instant", block: "center" });
 }
 
-function nextVisibleResult() {
+function nextVisibleResult(direction) {
   for (
     let i = 0;
     i < searchState.results.length;
-    i++, searchState.resultsCursor++
+    i++, searchState.resultsCursor += direction
   ) {
     if (searchState.resultsCursor > searchState.results.length) {
       searchState.resultsCursor = 0;
+    } else if (searchState.resultsCursor < 0) {
+      searchState.resultsCursor = searchState.results.length - 1;
     }
     const result = searchState.results.item(searchState.resultsCursor);
     if ($(result).is(":visible")) {
@@ -657,18 +672,37 @@ function switchSearchButtons(on) {
   });
 }
 
-function performSearch() {
+function showResultsCount() {
+  const count = searchState.results.length;
+  if (count > 0) {
+    switchSearchButtons(true);
+    $("#search-location").text(`${searchState.resultsCursor + 1} of ${count}`);
+  } else {
+    switchSearchButtons(false);
+    $("#search-location").text("");
+  }
+}
+
+function performSearch(refreshOnly) {
   const query = getCurrentSearchQuery();
   displayLogs();
-  searchState.results = document.querySelectorAll("mark");
+  searchState.results = Array.from(document.querySelectorAll("mark")).filter(
+    (node) => $(node).is(":visible")
+  );
+
   searchState.resultsCursor = 0;
 
-  const firstResult = nextVisibleResult();
-  if (firstResult) {
-    switchSearchButtons(true);
-    firstResult.className = "search-result-current";
-    scrollToSearchResult(firstResult);
+  // const firstResult = nextVisibleResult(1);
+  if (searchState.results && searchState.results.length > 0) {
+    if (refreshOnly) {
+      searchState.results[searchState.resultsCursor].className =
+        "search-result-current";
+    } else {
+      searchState.results[0].className = "search-result-current";
+      scrollToSearchResult(searchState.results[0]);
+    }
   }
+  showResultsCount();
 }
 
 function cancelSearch(panel) {
@@ -680,8 +714,10 @@ function navigateSearch(index) {
     return;
   }
 
-  const currentResult = searchState.results.item(searchState.resultsCursor);
-  currentResult.className = "search-result";
+  const currentResult = searchState.results[searchState.resultsCursor];
+  if (currentResult) {
+    currentResult.className = "search-result";
+  }
 
   searchState.resultsCursor += index;
   if (searchState.resultsCursor < 0) {
@@ -692,10 +728,12 @@ function navigateSearch(index) {
 
   // const newResult = searchState.results.item(searchState.resultsCursor);
 
-  const newResult = nextVisibleResult();
+  //const newResult = nextVisibleResult(index);
+  const newResult = searchState.results[searchState.resultsCursor];
   if (newResult) {
     newResult.className = "search-result-current";
     scrollToSearchResult(newResult);
+    showResultsCount();
   }
 }
 
