@@ -22,7 +22,7 @@ Clone this repo, then
 - Select the repo directory you just cloned to
 - Once installed, pin the extension to make it easy to get to settings
 
-[Watch the video](videos/journey-debugger-install.mov)
+[Watch the video](https://youtu.be/L63eKlhOmaY)
 
 ## Configuration
 
