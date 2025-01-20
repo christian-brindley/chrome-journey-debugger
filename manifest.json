@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Journey Debugger",
-  "version": "1.0",
+  "version": "1.0-beta",
   "description": "Shows debug information about a journey",
   "permissions": [
     "debugger",
